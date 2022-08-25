@@ -2,7 +2,7 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR6_uart.c
+ File Name     : H0FR67_uart.c
  Description   : Source Code provides configuration for USART instances.
 
  */

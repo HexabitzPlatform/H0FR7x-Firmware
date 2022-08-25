@@ -8,7 +8,7 @@
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "H0FR6_inputs.h"
+#include "H0FR7_inputs.h"
 
 /* Private and global variables ----------------------------------------------*/
 /* Buttons */

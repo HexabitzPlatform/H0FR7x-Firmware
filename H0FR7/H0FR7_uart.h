@@ -2,13 +2,13 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR6_uart.h
+ File Name     : H0FR7_uart.h
  Description   : Header file provides configuration for USART instances.
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __H0FR6_uart_H
-#define __H0FR6_uart_H
+#ifndef __H0FR7_uart_H
+#define __H0FR7_uart_H
 #ifdef __cplusplus
  extern "C" {
 #endif
@@ -49,7 +49,7 @@ extern BOS_Status ReadPortsDirMSG(uint8_t SourceModule);
 #ifdef __cplusplus
 }
 #endif
-#endif /*__H0FR6_uart_H */
+#endif /*__H0FR7_uart_H */
 
 /**
   * @}

@@ -2,14 +2,14 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR6_dma.h
+ File Name     : H0FR7_dma.h
  Description   : Header file contains Peripheral DMA setup.
 
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef H0FR6_dma_H
-#define H0FR6_dma_H
+#ifndef H0FR7_dma_H
+#define H0FR7_dma_H
 
 #ifdef __cplusplus
  extern "C" {
@@ -52,7 +52,7 @@ extern void SwitchStreamDMAToMsg(uint8_t port);
 }
 #endif
 
-#endif /* H0FR6_dma_H */
+#endif /* H0FR7_dma_H */
 
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

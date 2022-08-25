@@ -2,7 +2,7 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR6_dma.c
+ File Name     : H0FR7_dma.c
  Description   : source file Contains Peripheral DMA setup .
 
  */

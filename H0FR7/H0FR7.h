@@ -2,36 +2,27 @@
     BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
     All rights reserved
 		
-    File Name     : H0FR6.h
-    Description   : Header file for module H0FR1 SPDT mechanical DC relay
-						   , module H0FR6 Solid state AC relay (AQH3213A)
-						   , module H0FR7 Mosfet.
+    File Name     : H0FR7.h
+    Description   : Header file for  module H0FR7 Mosfet.
 */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef H0FR6_H
-#define H0FR6_H
+#ifndef H0FR7_H
+#define H0FR7_H
 
 /* Includes ------------------------------------------------------------------*/
 #include "BOS.h"
-#include "H0FR6_MemoryMap.h"	
-#include "H0FR6_uart.h"	
-#include "H0FR6_gpio.h"	
-#include "H0FR6_dma.h"
-#include "H0FR6_adc.h"
-#include "H0FR6_eeprom.h"
-#include "H0FR6_inputs.h"
+#include "H0FR7_MemoryMap.h"
+#include "H0FR7_uart.h"
+#include "H0FR7_gpio.h"
+#include "H0FR7_dma.h"
+#include "H0FR7_adc.h"
+#include "H0FR7_eeprom.h"
+#include "H0FR7_inputs.h"
 
 /* Exported definitions -------------------------------------------------------*/
-#ifdef H0FR1
-	#define	modulePN		_H0FR1
-#endif
-#ifdef H0FR6
-	#define	modulePN		_H0FR6
-#endif
-#ifdef H0FR7
+
 	#define	modulePN		_H0FR7
-#endif
 
 /* Port-related definitions */
 #define	NumOfPorts			5
@@ -90,12 +81,8 @@
 #define	USART6_AF			GPIO_AF5_USART6
 
 /* Module-specific Definitions */
-#if defined(H0FR1)
-	#define	_Switch_PIN						GPIO_PIN_0
-	#define	_Switch_PORT						GPIOB
-	#define _Switch_GPIO_CLK()				__GPIOB_CLK_ENABLE();
-#endif
-#if defined(H0FR6) || defined(H0FR7)
+
+
 	#define	_Switch_PIN						GPIO_PIN_0
 	#define	_Switch_PORT						GPIOB
 	#define _Switch_TIM_CH					TIM_CHANNEL_3
@@ -103,9 +90,6 @@
 	#define PWM_TIMER_CLOCK					16000000
 	#define Switch_PWM_DEF_FREQ				980
 	#define Switch_PWM_DEF_PERIOD			((float) (1/Switch_PWM_FREQ) )
-#endif
-
-#ifdef H0FR7
 	#define ADC_CONVERSION 				  0.0058
 
 	#define MOSFET_DEFAULT_MAX_LOOP       2000
@@ -137,20 +121,19 @@
 	#define MOSFET_MODE_SINGLE            0x00
 	#define MOSFET_MODE_CONTINUOUS        0x01
 	#define MOSFET_MODE_CONTINUOUS_TIMED  0x02
-#endif
 
 #define NUM_MODULE_PARAMS				  1
 
 /* H0FRx_Status Type Definition */
 typedef enum 
 {
-	H0FRx_OK = 0,
-	H0FRx_ERR_UnknownMessage = 1,
-	H0FRx_ERR_Wrong_Value = 2,
-	H0FRx_ERR_Timeout,
-	H0FRx_ERR_WrongParams,
-	H0FRx_STOPED,
-	H0FRx_ERROR = 255
+	H0FR7_OK = 0,
+	H0FR7_ERR_UnknownMessage = 1,
+	H0FR7_ERR_Wrong_Value = 2,
+	H0FR7_ERR_Timeout,
+	H0FR7_ERR_WrongParams,
+	H0FR7_STOPED,
+	H0FR7_ERROR = 255
 } Module_Status;
 
 /* Switch_state_t Type Definition */
@@ -162,14 +145,9 @@ typedef enum  {
 
 
 /* Indicator LED */
-#if defined(H0FR1) || defined(H0FR7)
 	#define _IND_LED_PORT		GPIOA
 	#define _IND_LED_PIN		GPIO_PIN_11
-#endif
-#ifdef H0FR6
-	#define _IND_LED_PORT		GPIOC
-	#define _IND_LED_PIN		GPIO_PIN_14
-#endif
+
 
 /* Export UART variables */
 extern UART_HandleTypeDef huart1;
@@ -196,17 +174,13 @@ extern uint8_t SwitchindMode;
 extern Module_Status Output_on(uint32_t timeout);
 extern Module_Status Output_off(void);
 extern Module_Status Output_toggle(void);
-#if defined(H0FR6) || defined(H0FR7)
-	extern Module_Status Output_PWM(float dutyCycle);
-#endif
-#ifdef H0FR7
-	extern float Sample_current_measurement(void);
-	extern float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period, uint32_t Timeout);
-	extern float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout);
-	extern float Stream_current_To_CLI(uint32_t Period, uint32_t Timeout);
-	extern float Stream_current_To_Buffer(float *Buffer, uint32_t Period, uint32_t Timeout);
-	extern Module_Status Stop_current_measurement(void);
-#endif
+extern Module_Status Output_PWM(float dutyCycle);
+extern float Sample_current_measurement(void);
+extern float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period, uint32_t Timeout);
+extern float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout);
+extern float Stream_current_To_CLI(uint32_t Period, uint32_t Timeout);
+extern float Stream_current_To_Buffer(float *Buffer, uint32_t Period, uint32_t Timeout);
+extern Module_Status Stop_current_measurement(void);
 
 void SetupPortForRemoteBootloaderUpdate(uint8_t port);
 void remoteBootloaderUpdate(uint8_t src,uint8_t dst,uint8_t inport,uint8_t outport);
@@ -219,13 +193,9 @@ extern const CLI_Command_Definition_t onCommandDefinition;
 extern const CLI_Command_Definition_t offCommandDefinition;
 extern const CLI_Command_Definition_t toggleCommandDefinition;
 extern const CLI_Command_Definition_t ledModeCommandDefinition;
-#if defined(H0FR6) || defined(H0FR7)
-	extern const CLI_Command_Definition_t pwmCommandDefinition;
-#endif
-#ifdef H0FR7
-	extern const CLI_Command_Definition_t currentCalculationCommandDefinition;
-#endif
+extern const CLI_Command_Definition_t pwmCommandDefinition;
+extern const CLI_Command_Definition_t currentCalculationCommandDefinition;
 
-#endif /* H0FR6_H & H0FR7 */
+#endif /* H0FR7_H  */
 
 /************************ (C) COPYRIGHT HEXABITZ *****END OF FILE****/

@@ -2,13 +2,13 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR6_adc.c
+ File Name     : H0FR7_adc.c
  Description   : Source Code provides configuration of the ADC instances.
 
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "H0FR6_adc.h"
+#include "H0FR7_adc.h"
 
 /* USER CODE BEGIN 0 */
 

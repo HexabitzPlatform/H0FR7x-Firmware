@@ -2,17 +2,15 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR6.c
- Description   : Source code for module H0FR1 SPDT mechanical DC relay
- , module H0FR6 Solid state AC relay (AQH3213A)
- , module H0FR7 Mosfet.
+ File Name     : H0FR7.c
+ Description   :  module H0FR7 Mosfet.
 
 
  Required MCU resources :
 
  >> USARTs 1,2,3,5,6 for module ports.
- >> Timer 3 (Ch3) for Switch PWM (H0FR6 || H0FR7).
- >> ADC 1 (Ch0) for Mosfet Current calculation (H0FR7 only)
+ >> Timer 3 (Ch3) for Switch PWM .
+ >> ADC 1 (Ch0) for Mosfet Current calculation.
  >> GPIOB 0 for Switch.
 
  */
@@ -29,9 +27,7 @@ UART_HandleTypeDef huart6;
 
 /* Module exported parameters ------------------------------------------------*/
 float H0FR6_Current = 0.0f;
-#ifdef H0FR7
 uint8_t startMeasurement = STOP_MEASUREMENT;
-#endif
 module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR6_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
 /* Exported variables */
 extern FLASH_ProcessTypeDef pFlash;
@@ -70,14 +66,10 @@ portBASE_TYPE onCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_
 portBASE_TYPE offCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 portBASE_TYPE ledModeCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
-#if defined(H0FR6) || defined(H0FR7)
 portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
-#endif
-#ifdef H0FR7
 static portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 static portBASE_TYPE MosfetStopCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
-#endif
 
 /* CLI command structure : on */
 const CLI_Command_Definition_t onCommandDefinition =
@@ -109,7 +101,6 @@ const CLI_Command_Definition_t ledModeCommandDefinition =
 				1 /* One parameter is expected. */
 		};
 /*-----------------------------------------------------------*/
-#if defined(H0FR6) || defined(H0FR7)
 /* CLI command structure : pwm */
 const CLI_Command_Definition_t pwmCommandDefinition =
 		{ (const int8_t*) "pwm", /* The command string to type. */
@@ -117,9 +108,7 @@ const CLI_Command_Definition_t pwmCommandDefinition =
 				pwmCommand, /* The function to run. */
 				1 /* One parameter is expected. */
 		};
-#endif
 /*-----------------------------------------------------------*/
-#ifdef H0FR7
 /* CLI command structure : sample */
 const CLI_Command_Definition_t mosfetSampleCommandDefinition =
 		{ (const int8_t*) "sample", /* The command string to type. */
@@ -145,7 +134,6 @@ const CLI_Command_Definition_t mosfetStopCommandDefinition = {
 		0 /* No parameters are expected. */
 };
 
-#endif
 /*-----------------------------------------------------------*/
 
 /* -----------------------------------------------------------------------
@@ -373,7 +361,7 @@ void SetupPortForRemoteBootloaderUpdate(uint8_t port){
 	__HAL_UART_ENABLE_IT(huart,UART_IT_RXNE);
 }
 
-/* --- (H0FR6 || H0FR7) module initialization ---
+/* ---  module initialization ---
  */
 void Module_Peripheral_Init(void) {
 
@@ -384,13 +372,12 @@ void Module_Peripheral_Init(void) {
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
 
-#ifdef H0FR7
 	/* ADC init */
 	MX_ADC_Init();
 
 	/* Create a Mosfet task */
 	xTaskCreate(MosfetTask,(const char* ) "MosfetTask",(2*configMINIMAL_STACK_SIZE),NULL,osPriorityNormal - osPriorityIdle,&MosfetHandle);
-#endif
+
 	/* Create a timeout timer for Switch_on() API */
 	xTimerSwitch =xTimerCreate("SwitchTimer",pdMS_TO_TICKS(1000),pdFALSE,(void* )1,SwitchTimerCallback);
 
@@ -405,35 +392,33 @@ void initialValue(void)
 
 /*-----------------------------------------------------------*/
 
-/* --- H0FRx message processing task. */
+/* --- H0FR7 message processing task. */
 Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src,
 		uint8_t dst, uint8_t shift) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 	uint32_t period;
 	uint32_t timeout;
 
 	switch (code) {
-	case CODE_H0FRx_ON:
+	case CODE_H0FR7_ON:
 		temp32 = cMessage[port - 1][shift] + ((uint32_t) cMessage[port - 1][1 + shift] << 8)+ ((uint32_t) cMessage[port - 1][2 + shift] << 16)+ ((uint32_t)cMessage[port - 1][3 + shift]<< 24);
 		Output_on(temp32);
 		break;
 
-	case CODE_H0FRx_OFF:
+	case CODE_H0FR7_OFF:
 		Output_off();
 		break;
 
-	case CODE_H0FRx_TOGGLE:
+	case CODE_H0FR7_TOGGLE:
 		Output_toggle();
 		break;
 
-#if defined(H0FR6) || defined(H0FR7)
-	case CODE_H0FRx_PWM:
+	case CODE_H0FR7_PWM:
 		tempFloat = (float)cMessage[port - 1][shift];
 //		tempFloat = (float) (((uint64_t) cMessage[port - 1][shift] )+ ((uint64_t) cMessage[port - 1][1 + shift] << 8)+ ((uint64_t) cMessage[port - 1][2 + shift] << 16)+ ((uint64_t) cMessage[port - 1][3 + shift] <<24));
 		Output_PWM(tempFloat);
 		break;
-#endif
-#ifdef H0FR7
+
 	case CODE_H0FR7_SAMPLE_PORT:
 		Sample_current_measurement();
 		SendMeasurementResult(REQ_SAMPLE, Current, cMessage[port - 1][1+shift], cMessage[port - 1][shift], NULL);
@@ -451,10 +436,9 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src,
 	case CODE_H0FR7_STOP_MEASUREMENT:
 		Stop_current_measurement();
 		break;
-#endif
 
 	default:
-		result = H0FRx_ERR_UnknownMessage;
+		result = H0FR7_ERR_UnknownMessage;
 		break;
 	}
 
@@ -470,14 +454,10 @@ void RegisterModuleCLICommands(void) {
 	FreeRTOS_CLIRegisterCommand(&offCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&toggleCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&ledModeCommandDefinition);
-#if defined(H0FR6) || defined(H0FR7)
 	FreeRTOS_CLIRegisterCommand(&pwmCommandDefinition);
-#endif
-#ifdef H0FR7
 	FreeRTOS_CLIRegisterCommand(&mosfetSampleCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&mosfetStreamCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&mosfetStopCommandDefinition);
-#endif
 }
 
 /*-----------------------------------------------------------*/
@@ -506,7 +486,6 @@ void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 
 	Output_off();
 
-#ifdef H0FR7
 
 	HAL_ADC_Stop(&hadc);
 	uint32_t tid = 0;
@@ -517,12 +496,10 @@ void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 		startMeasurement = STOP_MEASUREMENT;
 		mosfetMode = REQ_IDLE;		// Stop the streaming task
 	}
-#endif
 
 }
 /*-----------------------------------------------------------*/
 
-#if defined(H0FR6) || defined(H0FR7)
 /* TIM3 init function - Switch PWM Timer 16-bit
  */
 void TIM3_Init(void) {
@@ -584,13 +561,11 @@ void TIM3_DeInit(void) {
 	HAL_TIM_PWM_DeInit(&htim3);
 	__TIM3_CLK_DISABLE();
 }
-#endif
 /*-----------------------------------------------------------*/
 
-#if defined(H0FR6) || defined(H0FR7)
 /* --- Set Switch PWM frequency and dutycycle ---*/
 Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 	uint32_t ARR = PWM_TIMER_CLOCK / freq;
 
 	if (Switch_state != STATE_PWM)
@@ -603,14 +578,12 @@ Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
 	htim3.Instance->CCR3 = ((float) dutycycle / 100.0f) * ARR;
 
 	if (HAL_TIM_PWM_Start(&htim3, _Switch_TIM_CH) != HAL_OK)
-		return H0FRx_ERROR;
+		return H0FR7_ERROR;
 
 	return result;
 }
-#endif
 /*-----------------------------------------------------------*/
 
-#ifdef H0FR7
 /* --- ADC Calculation for the Current in H0FR7 (Mosfet)---*/
 static float Current_Calculation(void) {
 	ADC_ChannelConfTypeDef sConfig ={0};
@@ -702,7 +675,7 @@ static void MosfetTask(void *argument) {
 static Module_Status SendMeasurementResult(uint8_t request, float value, uint8_t module,
 		uint8_t port, float *Buffer) {
 
-	Module_Status state = H0FRx_OK;
+	Module_Status state = H0FR7_OK;
 	int8_t *pcOutputString;
 	static const int8_t *pcCurrentMsg = (int8_t*) "Current: %.2f\r\n";
 	static const int8_t *pcCurrentVerboseMsg = (int8_t*) "%.2f\r\n";
@@ -820,7 +793,6 @@ static void CheckForEnterKey(void) {
 	}
 }
 /*-----------------------------------------------------------*/
-#endif
 
 /* -----------------------------------------------------------------------
  |					          APIs	 								|								 	|
@@ -830,16 +802,14 @@ static void CheckForEnterKey(void) {
 /* --- Turn on the solid state Switch ---
  */
 Module_Status Output_on(uint32_t timeout) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
-#if defined(H0FR6) || defined(H0FR7)
 	/* Turn off PWM and re-initialize GPIO if needed */
 	if (Switch_state == STATE_PWM) {
 		HAL_TIM_PWM_Stop(&htim3, _Switch_TIM_CH);
 		TIM3_DeInit();
 		Switch_Init();
 	}
-#endif
 
 	/* Turn on */
 	HAL_GPIO_WritePin(_Switch_PORT, _Switch_PIN, GPIO_PIN_SET);
@@ -869,16 +839,14 @@ Module_Status Output_on(uint32_t timeout) {
 /* --- Turn off the solid state Switch ---
  */
 Module_Status Output_off(void) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
-#if defined(H0FR6) || defined(H0FR7)
 	/* Turn off PWM and re-initialize GPIO if needed */
 	if (Switch_state == STATE_PWM) {
 		HAL_TIM_PWM_Stop(&htim3, _Switch_TIM_CH);
 		TIM3_DeInit();
 		Switch_Init();
 	}
-#endif
 
 	/* Turn off */
 	HAL_GPIO_WritePin(_Switch_PORT, _Switch_PIN, GPIO_PIN_RESET);
@@ -898,37 +866,34 @@ Module_Status Output_off(void) {
 /* --- Toggle the solid state Switch ---
  */
 Module_Status Output_toggle(void) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	if (Switch_state) {
 		result = Output_off();
 	} else {
 		if (Switch_Oldstate == STATE_ON)
 			result = Output_on(portMAX_DELAY);
-#if defined(H0FR6) || defined(H0FR7)
 		else if (Switch_Oldstate == STATE_PWM)
 			result = Output_PWM(Switch_OldDC);
-#endif
 	}
 
 	return result;
 }
 
 /*-----------------------------------------------------------*/
-#if defined(H0FR6) || defined(H0FR7)
 /* --- Turn-on Switch with pulse-width modulation (PWM) ---
  dutyCycle: PWM duty cycle in precentage (0 to 100)
  */
 Module_Status Output_PWM(float dutyCycle) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	if (dutyCycle < 0 || dutyCycle > 100)
-		return H0FRx_ERR_Wrong_Value;
+		return H0FR7_ERR_Wrong_Value;
 
 	/* Start the PWM */
 	result = Set_Switch_PWM(Switch_PWM_DEF_FREQ, dutyCycle);
 
-	if (result == H0FRx_OK) {
+	if (result == H0FR7_OK) {
 		Switch_OldDC = dutyCycle;
 		/* Update Switch state */
 		Switch_state = STATE_PWM;
@@ -940,11 +905,9 @@ Module_Status Output_PWM(float dutyCycle) {
 
 	return result;
 }
-#endif
 
 /*-----------------------------------------------------------*/
 
-#ifdef H0FR7
 /* --- Read the Current value with Analog Digital Converter (ADC) in H0FR7 ---
  */
 float Sample_current_measurement(void) {
@@ -981,7 +944,7 @@ float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period,
 		/* Start the timeout timer */
 		xTimerStart(xTimerSwitch, portMAX_DELAY);
 	}
-	return (H0FRx_OK);
+	return (H0FR7_OK);
 }
 /*-----------------------------------------------------------*/
 
@@ -1006,7 +969,7 @@ float Stream_current_To_CLI(uint32_t Period, uint32_t Timeout) {
 		startMeasurement = START_MEASUREMENT;
 	}
 
-	return (H0FRx_OK);
+	return (H0FR7_OK);
 }
 /*-----------------------------------------------------------*/
 
@@ -1030,7 +993,7 @@ float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout) {
 	if (mosfetTimeout > 0) {
 		startMeasurement = START_MEASUREMENT;
 	}
-	return (H0FRx_OK);
+	return (H0FR7_OK);
 }
 /*-----------------------------------------------------------*/
 
@@ -1050,7 +1013,7 @@ float Stream_current_To_Buffer(float *Buffer, uint32_t Period, uint32_t Timeout)
 		xTimerStart( xTimerSwitch, portMAX_DELAY );
 	}
 
-	return (H0FRx_OK);
+	return (H0FR7_OK);
 }
 
 /*-----------------------------------------------------------*/
@@ -1058,7 +1021,7 @@ float Stream_current_To_Buffer(float *Buffer, uint32_t Period, uint32_t Timeout)
 /* --- Stop Current measurement --- */
 Module_Status Stop_current_measurement(void) {
 
-	Module_Status state = H0FRx_OK;
+	Module_Status state = H0FR7_OK;
 	mosfetMode = REQ_IDLE;
 	startMeasurement = STOP_MEASUREMENT;
 	xTimerStop(xTimerSwitch, 0);
@@ -1070,7 +1033,6 @@ Module_Status Stop_current_measurement(void) {
 }
 /*-----------------------------------------------------------*/
 
-#endif
 
 /* -----------------------------------------------------------------------
  |					    		Commands							|									 	|
@@ -1079,7 +1041,7 @@ Module_Status Stop_current_measurement(void) {
 
 portBASE_TYPE onCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 		const int8_t *pcCommandString) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	int8_t *pcParameterString1;
 	portBASE_TYPE xParameterStringLength1 = 0;
@@ -1110,7 +1072,7 @@ portBASE_TYPE onCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	result = Output_on(timeout);
 
 	/* Respond to the command */
-	if (result == H0FRx_OK) {
+	if (result == H0FR7_OK) {
 		if (timeout != portMAX_DELAY) {
 			sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, timeout);
 		} else {
@@ -1127,7 +1089,7 @@ portBASE_TYPE onCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 
 portBASE_TYPE offCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 		const int8_t *pcCommandString) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	static const int8_t *pcMessage =
 			(int8_t*) "Solid state Switch is turned off\r\n";
@@ -1142,7 +1104,7 @@ portBASE_TYPE offCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	result = Output_off();
 
 	/* Respond to the command */
-	if (result == H0FRx_OK) {
+	if (result == H0FR7_OK) {
 		strcpy((char*) pcWriteBuffer, (char*) pcMessage);
 	}
 
@@ -1155,7 +1117,7 @@ portBASE_TYPE offCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 
 portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 		const int8_t *pcCommandString) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	static const int8_t *pcOK1Message =
 			(int8_t*) "Solid state Switch is turned on\r\n";
@@ -1171,7 +1133,7 @@ portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	result = Output_toggle();
 
 	/* Respond to the command */
-	if (result == H0FRx_OK) {
+	if (result == H0FR7_OK) {
 		if (Switch_state) {
 			strcpy((char*) pcWriteBuffer, (char*) pcOK1Message);
 		} else {
@@ -1230,7 +1192,7 @@ portBASE_TYPE ledModeCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 #if defined(H0FR6) || defined(H0FR7)
 portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 		const int8_t *pcCommandString) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	int8_t *pcParameterString1;
 	portBASE_TYPE xParameterStringLength1 = 0;
@@ -1255,14 +1217,14 @@ portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	dutycycle = (float) atof((char*) pcParameterString1);
 
 	if (dutycycle < 0.0f || dutycycle > 100.0f)
-		result = H0FRx_ERR_Wrong_Value;
+		result = H0FR7_ERR_Wrong_Value;
 	else
 		result = Output_PWM(dutycycle);
 
 	/* Respond to the command */
-	if (result == H0FRx_OK) {
+	if (result == H0FR7_OK) {
 		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, dutycycle);
-	} else if (result == H0FRx_ERR_Wrong_Value) {
+	} else if (result == H0FR7_ERR_Wrong_Value) {
 		strcpy((char*) pcWriteBuffer, (char*) pcWrongValue);
 	}
 
@@ -1273,7 +1235,6 @@ portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 #endif
 /*-----------------------------------------------------------*/
 
-#ifdef H0FR7
 static portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,
 		size_t xWriteBufferLen, const int8_t *pcCommandString) {
 	int8_t *pcParameterString1;
@@ -1327,7 +1288,7 @@ static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
 	uint8_t Module = 0;
 	bool b;
 
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 
 	/* Remove compile time warnings about unused parameters, and check the
 	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
@@ -1351,7 +1312,7 @@ static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
 	if (NULL != pcParameterString1) {
 		Period = atoi((char*) pcParameterString1);
 	} else {
-		result = H0FRx_ERR_WrongParams;
+		result = H0FR7_ERR_WrongParams;
 	}
 	if (NULL != pcParameterString2) {
 		if (!strncmp((const char*) pcParameterString2, "inf", 3)) {
@@ -1360,7 +1321,7 @@ static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
 			Timeout = atoi((char*) pcParameterString2);
 		}
 	} else {
-		result = H0FRx_ERR_WrongParams;
+		result = H0FR7_ERR_WrongParams;
 	}
 
 	/* streaming data to internal buffer (module parameter) */
@@ -1406,10 +1367,10 @@ static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
 				/* Wait till the end of stream */
 				while (startMeasurement != STOP_MEASUREMENT) {taskYIELD();}
 			} else {
-				result = H0FRx_ERR_WrongParams;
+				result = H0FR7_ERR_WrongParams;
 					}
 
-	if (H0FRx_ERR_WrongParams == result) {
+	if (H0FR7_ERR_WrongParams == result) {
 		strcpy((char*) pcWriteBuffer, (char*) pcMessageError);
 	}
 
@@ -1433,7 +1394,7 @@ static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
 
 static portBASE_TYPE MosfetStopCommand(int8_t *pcWriteBuffer,
 		size_t xWriteBufferLen, const int8_t *pcCommandString) {
-	Module_Status result = H0FRx_OK;
+	Module_Status result = H0FR7_OK;
 	static const int8_t *pcMessageOK =
 			(int8_t*) "Streaming stopped successfully\r\n";
 	static const int8_t *pcMessageError =
@@ -1448,7 +1409,7 @@ static portBASE_TYPE MosfetStopCommand(int8_t *pcWriteBuffer,
 
 	result = Stop_current_measurement();
 
-	if (H0FRx_OK == result) {
+	if (H0FR7_OK == result) {
 		strcpy((char*) pcWriteBuffer, (char*) pcMessageOK);
 	} else {
 		strcpy((char*) pcWriteBuffer, (char*) pcMessageError);
@@ -1478,6 +1439,5 @@ static portBASE_TYPE currentModParamCommand(int8_t *pcWriteBuffer,
 }
 
 /*-----------------------------------------------------------*/
-#endif
 
 /************************ (C) COPYRIGHT HEXABITZ *****END OF FILE****/
