@@ -26,9 +26,9 @@ UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart6;
 
 /* Module exported parameters ------------------------------------------------*/
-float H0FR6_Current = 0.0f;
+float H0FR7_Current = 0.0f;
 uint8_t startMeasurement = STOP_MEASUREMENT;
-module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR6_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
+module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR7_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
 /* Exported variables */
 extern FLASH_ProcessTypeDef pFlash;
 extern uint8_t numOfRecordedSnippets;
