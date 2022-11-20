@@ -71,9 +71,99 @@ void SetupPortForRemoteBootloaderUpdate(uint8_t port);
 void remoteBootloaderUpdate(uint8_t src,uint8_t dst,uint8_t inport,uint8_t outport);
 
 /* Create CLI commands --------------------------------------------------------*/
-
+portBASE_TYPE onCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE offCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE ledModeCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+#if defined(H0FR6) || defined(H0FR7)
+portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+#endif
+#ifdef H0FR7
+static portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+static portBASE_TYPE MosfetStopCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+#endif
 /*-----------------------------------------------------------*/
+portBASE_TYPE onCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE offCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE ledModeCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+#if defined(H0FR6) || defined(H0FR7)
+portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+#endif
+#ifdef H0FR7
+static portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+static portBASE_TYPE MosfetStopCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+#endif
 
+/* CLI command structure : on */
+const CLI_Command_Definition_t onCommandDefinition =
+		{ (const int8_t*) "on", /* The command string to type. */
+				(const int8_t*) "on:\r\n Turn solid state Switch on with a timeout (ms) (1st par.). Use 'inf' to turn on constantly\r\n\r\n",
+				onCommand, /* The function to run. */
+				1 /* One parameter is expected. */
+		};
+/*-----------------------------------------------------------*/
+/* CLI command structure : off */
+const CLI_Command_Definition_t offCommandDefinition = { (const int8_t*) "off", /* The command string to type. */
+(const int8_t*) "off:\r\n Turn solid state Switch off\r\n\r\n", offCommand, /* The function to run. */
+0 /* No parameters are expected. */
+};
+/*-----------------------------------------------------------*/
+/* CLI command structure : toggle */
+const CLI_Command_Definition_t toggleCommandDefinition = {
+		(const int8_t*) "toggle", /* The command string to type. */
+		(const int8_t*) "toggle:\r\n Toggle solid state Switch\r\n\r\n",
+		toggleCommand, /* The function to run. */
+		0 /* No parameters are expected. */
+};
+/*-----------------------------------------------------------*/
+/* CLI command structure : ledMode */
+const CLI_Command_Definition_t ledModeCommandDefinition =
+		{ (const int8_t*) "ledmode", /* The command string to type. */
+				(const int8_t*) "ledMode:\r\n Set solid state Switch indicator LED mode ('on' or 'off') (1st par.)\r\n\r\n",
+				ledModeCommand, /* The function to run. */
+				1 /* One parameter is expected. */
+		};
+/*-----------------------------------------------------------*/
+#if defined(H0FR6) || defined(H0FR7)
+/* CLI command structure : pwm */
+const CLI_Command_Definition_t pwmCommandDefinition =
+		{ (const int8_t*) "pwm", /* The command string to type. */
+				(const int8_t*) "pwm:\r\n Control the solid state Switch with pulse-width modulation (PWM) signal with a percentage duty cycle (0-100) (1st par.)\r\n\r\n",
+				pwmCommand, /* The function to run. */
+				1 /* One parameter is expected. */
+		};
+#endif
+/*-----------------------------------------------------------*/
+#ifdef H0FR7
+/* CLI command structure : sample */
+const CLI_Command_Definition_t mosfetSampleCommandDefinition =
+		{ (const int8_t*) "sample", /* The command string to type. */
+				(const int8_t*) "sample:\r\n Sample command to get the Current consumption in (Amp)\r\n\r\n",
+				mosfetSampleCommand, /* The function to run. */
+				0 /* Zero parameter is expected. */
+		};
+/*-----------------------------------------------------------*/
+/* CLI command structure : stream */
+const CLI_Command_Definition_t mosfetStreamCommandDefinition =
+		{ (const int8_t*) "stream", /* The command string to type. */
+				(const int8_t*) "stream:\r\nStream measurements to the CLI with this syntax:\n\r\tstream period(in ms) timeout(in ms)\n\r\tstream period timeout -v\t(for verbose output)\
+			\n\rOr to a specific port in a specific module with this syntax:\r\n\tstream period timeout port(p1..px) module\n\rOr to internal buffer with this syntax:\r\n\tstream period timeout buffer.\t(Buffer here is a literal value and can be accessed in the CLI using module parameter: current)\r\n\r\n",
+				mosfetStreamCommand, /* The function to run. */
+				-1 /* Multiple parameters are expected. */
+		};
+/*-----------------------------------------------------------*/
+/* CLI command structure : stop */
+const CLI_Command_Definition_t mosfetStopCommandDefinition = {
+		(const int8_t*) "stop", /* The command string to type. */
+		(const int8_t*) "stop:\r\nStop continuous or timed measurement\r\n\r\n",
+		MosfetStopCommand, /* The function to run. */
+		0 /* No parameters are expected. */
+};
+
+#endif
 /* -----------------------------------------------------------------------
  |												 Private Functions	 														|
  ----------------------------------------------------------------------- 
@@ -371,17 +461,57 @@ void initialValue(void)
 /* --- H0FR7 message processing task.
  */
 Module_Status Module_MessagingTask(uint16_t code,uint8_t port,uint8_t src,uint8_t dst,uint8_t shift){
-	Module_Status result =H0FRx_OK;
+	Module_Status result = H0FRx_OK;
+		uint32_t period;
+		uint32_t timeout;
 
+		switch (code) {
+		case CODE_H0FR7_ON:
+			temp32 = cMessage[port - 1][shift] + ((uint32_t) cMessage[port - 1][1 + shift] << 8)+ ((uint32_t) cMessage[port - 1][2 + shift] << 16)+ ((uint32_t)cMessage[port - 1][3 + shift]<< 24);
+			Output_on(temp32);
+			break;
 
-	switch(code){
+		case CODE_H0FR7_OFF:
+			Output_off();
+			break;
+
+		case CODE_H0FR7_TOGGLE:
+			Output_toggle();
+			break;
+
+	#if defined(H0FR6) || defined(H0FR7)
+		case CODE_H0FR7_PWM:
+			tempFloat = (float)cMessage[port - 1][shift];
+	//		tempFloat = (float) (((uint64_t) cMessage[port - 1][shift] )+ ((uint64_t) cMessage[port - 1][1 + shift] << 8)+ ((uint64_t) cMessage[port - 1][2 + shift] << 16)+ ((uint64_t) cMessage[port - 1][3 + shift] <<24));
+			Output_PWM(tempFloat);
+			break;
+	#endif
+	#ifdef H0FR7
+		case CODE_H0FR7_SAMPLE_PORT:
+			Sample_current_measurement();
+			SendMeasurementResult(REQ_SAMPLE, Current, cMessage[port - 1][1+shift], cMessage[port - 1][shift], NULL);
+			break;
+		case CODE_H0FR7_STREAM_PORT:
+			period = ((uint32_t) cMessage[port - 1][5 + shift] << 24)+ ((uint32_t) cMessage[port - 1][4 + shift] << 16)+ ((uint32_t) cMessage[port - 1][3 + shift] << 8)+ cMessage[port - 1][2 + shift];
+			timeout = ((uint32_t) cMessage[port - 1][9 + shift] << 24)+ ((uint32_t) cMessage[port - 1][8 + shift] << 16)+ ((uint32_t) cMessage[port - 1][7 + shift] << 8)+ cMessage[port - 1][6 + shift];
+			Stream_current_To_Port(cMessage[port - 1][shift], cMessage[port - 1][1 + shift], period, timeout);
+			break;
+		case CODE_H0FR7_STREAM_BUFFER:
+			period = ((uint32_t) cMessage[port - 1][3 + shift] << 24)	+ ((uint32_t) cMessage[port - 1][2 + shift] << 16)+ ((uint32_t) cMessage[port - 1][1 + shift] << 8)+ cMessage[port - 1][shift];
+			timeout = ((uint32_t) cMessage[port - 1][7 + shift] << 24)+ ((uint32_t) cMessage[port - 1][6 + shift] << 16)+ ((uint32_t) cMessage[port - 1][5 + shift] << 8)+ cMessage[port - 1][4 + shift];
+			Stream_current_To_Buffer(&mosfetBuffer, period, timeout);
+			break;
+		case CODE_H0FR7_STOP_MEASUREMENT:
+			Stop_current_measurement();
+			break;
+	#endif
 
 		default:
-			result =H0FRx_ERR_UnknownMessage;
+			result = H0FRx_ERR_UnknownMessage;
 			break;
-	}
-	
-	return result;
+		}
+
+		return result;
 }
 /* --- Get the port for a given UART. 
  */
@@ -408,7 +538,18 @@ uint8_t GetPort(UART_HandleTypeDef *huart){
 /* --- Register this module CLI Commands
  */
 void RegisterModuleCLICommands(void){
-
+	FreeRTOS_CLIRegisterCommand(&onCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&offCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&toggleCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&ledModeCommandDefinition);
+#if defined(H0FR6) || defined(H0FR7)
+	FreeRTOS_CLIRegisterCommand(&pwmCommandDefinition);
+#endif
+#ifdef H0FR7
+	FreeRTOS_CLIRegisterCommand(&mosfetSampleCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&mosfetStreamCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&mosfetStopCommandDefinition);
+#endif
 }
 
 /*-----------------------------------------------------------*/
@@ -774,6 +915,27 @@ Module_Status Output_off(void) {
 }
 
 /*-----------------------------------------------------------*/
+/* --- Toggle the solid state Switch ---
+ */
+Module_Status Output_toggle(void) {
+	Module_Status result = H0FRx_OK;
+
+	if (Switch_state) {
+		result = Output_off();
+	} else {
+		if (Switch_Oldstate == STATE_ON)
+			result = Output_on(portMAX_DELAY);
+#if defined(H0FR6) || defined(H0FR7)
+		else if (Switch_Oldstate == STATE_PWM)
+			result = Output_PWM(Switch_OldDC);
+#endif
+	}
+
+	return result;
+}
+
+/*-----------------------------------------------------------*/
+
 #if defined(H0FR6) || defined(H0FR7)
 /* --- Turn-on Switch with pulse-width modulation (PWM) ---
  dutyCycle: PWM duty cycle in precentage (0 to 100)
@@ -801,7 +963,7 @@ Module_Status Output_PWM(float dutyCycle) {
 	return result;
 }
 #endif
-
+/*-----------------------------------------------------------*/
 #ifdef H0FR7
 /* --- Read the Current value with Analog Digital Converter (ADC) in H0FR7 ---
  */
@@ -818,8 +980,8 @@ float Sample_current_measurement(void) {
 		return temp;
 	}
 }
-/*-----------------------------------------------------------*/
 
+/*-----------------------------------------------------------*/
 /* --- Stream measurements continuously to a port --- */
 float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period,
 		uint32_t Timeout) {
@@ -934,7 +1096,408 @@ Module_Status Stop_current_measurement(void) {
  |								Commands							      |
    -----------------------------------------------------------------------
  */
+portBASE_TYPE onCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
+		const int8_t *pcCommandString) {
+	Module_Status result = H0FRx_OK;
 
+	int8_t *pcParameterString1;
+	portBASE_TYPE xParameterStringLength1 = 0;
+	uint32_t timeout = 0;
+	static const int8_t *pcOKMessage =
+			(int8_t*) "Solid state Switch is turned on with timeout %d ms\r\n";
+	static const int8_t *pcOKMessageInf =
+			(int8_t*) "Solid state Switch is turned on without timeout\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the 1st parameter string. */
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, /* The command string itself. */
+	1, /* Return the first parameter. */
+	&xParameterStringLength1 /* Store the parameter string length. */
+	);
+
+	if (!strcmp((char*) pcParameterString1, "inf")
+			|| !strcmp((char*) pcParameterString1, "INF"))
+		timeout = portMAX_DELAY;
+	else
+		timeout = (uint32_t) atol((char*) pcParameterString1);
+
+	result = Output_on(timeout);
+
+	/* Respond to the command */
+	if (result == H0FRx_OK) {
+		if (timeout != portMAX_DELAY) {
+			sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, timeout);
+		} else {
+			strcpy((char*) pcWriteBuffer, (char*) pcOKMessageInf);
+		}
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE offCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
+		const int8_t *pcCommandString) {
+	Module_Status result = H0FRx_OK;
+
+	static const int8_t *pcMessage =
+			(int8_t*) "Solid state Switch is turned off\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) pcCommandString;
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	result = Output_off();
+
+	/* Respond to the command */
+	if (result == H0FRx_OK) {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessage);
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
+		const int8_t *pcCommandString) {
+	Module_Status result = H0FRx_OK;
+
+	static const int8_t *pcOK1Message =
+			(int8_t*) "Solid state Switch is turned on\r\n";
+	static const int8_t *pcOK0Message =
+			(int8_t*) "Solid state Switch is turned off\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	result = Output_toggle();
+
+	/* Respond to the command */
+	if (result == H0FRx_OK) {
+		if (Switch_state) {
+			strcpy((char*) pcWriteBuffer, (char*) pcOK1Message);
+		} else {
+			strcpy((char*) pcWriteBuffer, (char*) pcOK0Message);
+		}
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE ledModeCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
+		const int8_t *pcCommandString) {
+	int8_t *pcParameterString1;
+	portBASE_TYPE xParameterStringLength1 = 0;
+
+	static const int8_t *pcOK1Message =
+			(int8_t*) "Solid state Switch indicator LED is enabled\r\n";
+	static const int8_t *pcOK0Message =
+			(int8_t*) "Solid state Switch indicator LED is disabled\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the 1st parameter string. */
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, /* The command string itself. */
+	1, /* Return the first parameter. */
+	&xParameterStringLength1 /* Store the parameter string length. */
+	);
+	if (!strcmp((char*) pcParameterString1, "on")
+			|| !strcmp((char*) pcParameterString1, "ON"))
+		SwitchindMode = 1;
+	else if (!strcmp((char*) pcParameterString1, "off")
+			|| !strcmp((char*) pcParameterString1, "OFF"))
+		SwitchindMode = 0;
+
+	/* Respond to the command */
+	if (SwitchindMode) {
+		strcpy((char*) pcWriteBuffer, (char*) pcOK1Message);
+	} else {
+		strcpy((char*) pcWriteBuffer, (char*) pcOK0Message);
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+#if defined(H0FR6) || defined(H0FR7)
+portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
+		const int8_t *pcCommandString) {
+	Module_Status result = H0FRx_OK;
+
+	int8_t *pcParameterString1;
+	portBASE_TYPE xParameterStringLength1 = 0;
+	float dutycycle = 0;
+	static const int8_t *pcOKMessage =
+			(int8_t*) "Solid state Switch is pulse-width modulated with %.1f%% duty cycle\r\n";
+	static const int8_t *pcWrongValue =
+			(int8_t*) "Wrong duty cycle value. Acceptable range is 0 to 100\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the 1st parameter string. */
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, /* The command string itself. */
+	1, /* Return the first parameter. */
+	&xParameterStringLength1 /* Store the parameter string length. */
+	);
+
+	dutycycle = (float) atof((char*) pcParameterString1);
+
+	if (dutycycle < 0.0f || dutycycle > 100.0f)
+		result = H0FRx_ERR_Wrong_Value;
+	else
+		result = Output_PWM(dutycycle);
+
+	/* Respond to the command */
+	if (result == H0FRx_OK) {
+		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, dutycycle);
+	} else if (result == H0FRx_ERR_Wrong_Value) {
+		strcpy((char*) pcWriteBuffer, (char*) pcWrongValue);
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+#endif
+/*-----------------------------------------------------------*/
+
+#ifdef H0FR7
+static portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	int8_t *pcParameterString1;
+	portBASE_TYPE xParameterStringLength1 = 0;
+	float Current = 0;
+	static const int8_t *pcOKMessage = (int8_t*) "Current: %.3f Amp\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the value. */
+	Current = Current_Calculation();
+	mosfetCurrent = Current;
+
+	/* Respond to the command */
+	sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, Current);
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+/*-----------------------------------------------------------*/
+
+static portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	static const int8_t *pcMessageBuffer =
+			(int8_t*) "Streaming measurements to internal buffer. Access in the CLI using module parameter: current\n\r";
+	static const int8_t *pcMessageModule =
+			(int8_t*) "Streaming measurements to port P%d in module #%d\n\r";
+	static const int8_t *pcMessageCLI =
+			(int8_t*) "Streaming measurements to the CLI\n\n\r";
+	static const int8_t *pcMessageError = (int8_t*) "Wrong parameter\r\n";
+	static const int8_t *pcMessageStopMsg =
+				(int8_t*) "Streaming stopped successfully\n\r";
+
+	int8_t *pcParameterString1; /* period */
+	int8_t *pcParameterString2; /* timeout */
+	int8_t *pcParameterString3; /* port or buffer */
+	int8_t *pcParameterString4; /* module */
+	portBASE_TYPE xParameterStringLength1 = 0;
+	portBASE_TYPE xParameterStringLength2 = 0;
+	portBASE_TYPE xParameterStringLength3 = 0;
+	portBASE_TYPE xParameterStringLength4 = 0;
+
+	uint32_t Period = 0;
+	uint32_t Timeout = 0;
+	uint8_t Port = 0;
+	uint8_t Module = 0;
+	bool b;
+
+	Module_Status result = H0FRx_OK;
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the 1st parameter string: period */
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1,
+			&xParameterStringLength1);
+	/* Obtain the 2nd parameter string: timeout */
+	pcParameterString2 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 2,
+			&xParameterStringLength2);
+	/* Obtain the 3rd parameter string: port */
+	pcParameterString3 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 3,
+			&xParameterStringLength3);
+	/* Obtain the 4th parameter string: module */
+	pcParameterString4 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 4,
+			&xParameterStringLength4);
+
+	if (NULL != pcParameterString1) {
+		Period = atoi((char*) pcParameterString1);
+	} else {
+		result = H0FRx_ERR_WrongParams;
+	}
+	if (NULL != pcParameterString2) {
+		if (!strncmp((const char*) pcParameterString2, "inf", 3)) {
+			Timeout = portMAX_DELAY;
+		} else {
+			Timeout = atoi((char*) pcParameterString2);
+		}
+	} else {
+		result = H0FRx_ERR_WrongParams;
+	}
+
+	/* streaming data to internal buffer (module parameter) */
+		if (NULL != pcParameterString3 && !strncmp((const char *)pcParameterString3, "buffer", 6))
+		{
+			strcpy(( char * ) pcWriteBuffer, ( char * ) pcMessageBuffer);
+
+			Stream_current_To_Buffer(&mosfetBuffer, Period, Timeout);
+
+			// Return right away here as we don't want to block the CLI
+			return pdFALSE;
+		}
+	/* streaming data to port */
+	else if (NULL != pcParameterString3 && NULL != pcParameterString4
+			&& pcParameterString3[0] == 'p') {
+		Port = (uint8_t) atol((char*) pcParameterString3 + 1);
+		Module = atoi((char*) pcParameterString4);
+		sprintf((char*) pcWriteBuffer, (char*) pcMessageModule, Port, Module);
+		Stream_current_To_Port(Period, Timeout, Port, Module);
+		// Return right away here as we don't want to block the CLI
+		return pdFALSE;
+	}
+		/* Stream to the CLI */
+			else if (NULL == pcParameterString3) {
+				strcpy((char*) pcWriteBuffer, (char*) pcMessageCLI);
+				writePxMutex(PcPort, (char*) pcWriteBuffer,
+						strlen((char*) pcWriteBuffer), cmd50ms, HAL_MAX_DELAY);
+				Stream_current_To_CLI(Period, Timeout);
+
+				/* Wait till the end of stream */
+				while (startMeasurement != STOP_MEASUREMENT) {
+					taskYIELD();
+				}
+			}
+
+			else if (NULL != pcParameterString3
+					&& !strncmp((const char*) pcParameterString3, "-v", 2)) {
+				strcpy((char*) pcWriteBuffer, (char*) pcMessageCLI);
+				writePxMutex(PcPort, (char*) pcWriteBuffer,
+						strlen((char*) pcWriteBuffer), cmd50ms, HAL_MAX_DELAY);
+				Stream_current_To_CLI_V(Period, Timeout);
+
+				/* Wait till the end of stream */
+				while (startMeasurement != STOP_MEASUREMENT) {taskYIELD();}
+			} else {
+				result = H0FRx_ERR_WrongParams;
+					}
+
+	if (H0FRx_ERR_WrongParams == result) {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessageError);
+	}
+
+	Stop_current_measurement();
+
+		if (stopB) {
+			strcpy((char*) pcWriteBuffer, (char*) pcMessageStopMsg);
+			writePxMutex(PcPort, (char*) pcWriteBuffer,
+					strlen((char*) pcWriteBuffer), cmd50ms, HAL_MAX_DELAY);
+			memset((char*) pcWriteBuffer, 0, strlen((char*) pcWriteBuffer));
+			stopB = 0;
+		} else {
+			/* clean terminal output */
+			memset((char*) pcWriteBuffer, 0, strlen((char*) pcWriteBuffer));
+		}
+
+	/* There is no more data to return after this single string, so return pdFALSE. */
+	return pdFALSE;
+}
+/*-----------------------------------------------------------*/
+
+static portBASE_TYPE MosfetStopCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	Module_Status result = H0FRx_OK;
+	static const int8_t *pcMessageOK =
+			(int8_t*) "Streaming stopped successfully\r\n";
+	static const int8_t *pcMessageError =
+			(int8_t*) "Command failed! Please try again or reboot\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) pcCommandString;
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	result = Stop_current_measurement();
+
+	if (H0FRx_OK == result) {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessageOK);
+	} else {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessageError);
+	}
+
+	/* There is no more data to return after this single string, so return pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+
+static portBASE_TYPE currentModParamCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	static const int8_t *pcJoystickVerboseMsg = (int8_t*) "%.3f\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	sprintf((char*) pcWriteBuffer, (char*) pcJoystickVerboseMsg,
+			mosfetBuffer);
+
+	/* There is no more data to return after this single string, so return pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+#endif
 
 
 /*-----------------------------------------------------------*/
