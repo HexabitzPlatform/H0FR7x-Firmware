@@ -40,7 +40,22 @@ void IND_LED_Init(void){
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(_IND_LED_PORT,&GPIO_InitStruct);
 }
+void Switch_Init(void)
+{
+	GPIO_InitTypeDef GPIO_InitStruct;
 
+	GPIO_InitStruct.Pin = _Switch_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Pin = _Switch_PIN;
+	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
+	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
+}
 /*-----------------------------------------------------------*/
 
 /* --- Check for factory reset condition: 
@@ -104,7 +119,7 @@ BOS_Status GetPortGPIOs(uint8_t port,uint32_t *TX_Port,uint16_t *TX_Pin,uint32_t
 	UART_HandleTypeDef *huart =GetUart(port);
 	
 	if(huart == &huart1){
-#ifdef _Usart1		
+#ifdef _Usart1
 		*TX_Port =(uint32_t ) USART1_TX_PORT;
 		*TX_Pin = USART1_TX_PIN;
 		*RX_Port =(uint32_t ) USART1_RX_PORT;

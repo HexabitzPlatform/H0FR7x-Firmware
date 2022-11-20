@@ -24,9 +24,75 @@
 TIM_HandleTypeDef htim16; /* micro-second delay counter */
 //TIM_HandleTypeDef htim15; /* milli-second delay counter */
 TIM_HandleTypeDef htim17; /* milli-second delay counter */
-
+TIM_HandleTypeDef htim1;
+extern void MX_TIM1_Init(void);
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /*  Micro-seconds timebase init function - TIM14 (16-bit)
  */
+
+void MX_TIM1_Init(void)
+{
+
+	  TIM_MasterConfigTypeDef sMasterConfig = {0};
+	  TIM_OC_InitTypeDef sConfigOC = {0};
+	  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+	  TIM_ClockConfigTypeDef sClockSourceConfig;
+	  /* USER CODE BEGIN TIM1_Init 1 */
+
+	  /* USER CODE END TIM1_Init 1 */
+	  htim1.Instance = TIM1;
+	  htim1.Init.Prescaler = (uint32_t) (HAL_RCC_GetSysClockFreq()/ PWM_TIMER_CLOCK) - 1;
+	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+	  htim1.Init.Period =0;
+	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	  htim1.Init.RepetitionCounter = 0;
+	  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+		sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+		HAL_TIM_ConfigClockSource(&htim1,&sClockSourceConfig);
+	  HAL_TIM_PWM_Init(&htim1);
+
+	  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+	  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+	  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+	  HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig);
+
+	  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+	  sConfigOC.Pulse = 0;
+	  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+	  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+	  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+	  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+	  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+
+	  HAL_TIM_Base_Init(&htim1);
+	  HAL_TIM_PWM_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3);
+
+	  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+	  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+	  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+	  sBreakDeadTimeConfig.DeadTime = 0;
+	  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+	  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+	  sBreakDeadTimeConfig.BreakFilter = 0;
+	  sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT;
+	  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+	  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+	  sBreakDeadTimeConfig.Break2Filter = 0;
+	  sBreakDeadTimeConfig.Break2AFMode = TIM_BREAK_AFMODE_INPUT;
+	  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+	  HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig);
+
+	  /* USER CODE BEGIN TIM1_Init 2 */
+
+	  /* USER CODE END TIM1_Init 2 */
+	  __HAL_RCC_TIM1_CLK_ENABLE();
+	  HAL_TIM_MspPostInit(&htim1);
+	  HAL_NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn,0,0);
+	  	HAL_NVIC_EnableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);
+	  	HAL_TIM_PWM_ConfigChannel(&htim1,&sConfigOC,TIM_CHANNEL_3);
+
+
+}
 void TIM_USEC_Init(void){
 //	TIM_MasterConfigTypeDef sMasterConfig;
 //
@@ -63,7 +129,32 @@ void TIM_USEC_Init(void){
 }
 
 /*-----------------------------------------------------------*/
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
+{
 
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(timHandle->Instance==TIM1)
+  {
+  /* USER CODE BEGIN TIM1_MspPostInit 0 */
+
+  /* USER CODE END TIM1_MspPostInit 0 */
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**TIM1 GPIO Configuration
+    PB6    ------> TIM1_CH3N
+
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF2_TIM1;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN TIM1_MspPostInit 1 */
+
+  /* USER CODE END TIM1_MspPostInit 1 */
+  }
+}
 /*-----------------------------------------------------------*/
 
 /*  Milli-seconds timebase init function - TIM15 (16-bit)
