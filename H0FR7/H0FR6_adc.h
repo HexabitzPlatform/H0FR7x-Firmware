@@ -2,7 +2,7 @@
  BitzOS (BOS) V0.2.7 - Copyright (C) 2017-2022 Hexabitz
  All rights reserved
 
- File Name     : H0FR7_adc.h
+ File Name     : H0FR6_adc.h
  Description   : Header file provides configuration of the ADC instances.
 
  */
@@ -28,7 +28,7 @@ extern ADC_HandleTypeDef hadc;
 /* USER CODE END Private defines */
 
 void MX_ADC_Init(void);
-
+extern void MX_ADC1_Init(void);
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */
