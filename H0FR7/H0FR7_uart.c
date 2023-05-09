@@ -230,6 +230,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 		    HAL_DMA_Init(&hdma_usart2_rx);
 
 		    __HAL_LINKDMA(huart,hdmarx,hdma_usart2_rx);
+		    /* USART2 interrupt Init */
+			 HAL_NVIC_SetPriority(USART2_LPUART2_IRQn, 0, 0);
+			 HAL_NVIC_EnableIRQ(USART2_LPUART2_IRQn);
 #endif
 	}
 	else if(huart->Instance == USART3){
@@ -265,6 +268,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 	    hdma_usart3_rx.Init.Priority = DMA_PRIORITY_LOW;
 	    HAL_DMA_Init(&hdma_usart3_rx);
 	    __HAL_LINKDMA(huart,hdmarx,hdma_usart3_rx);
+	    /* USART3 interrupt Init */
+		HAL_NVIC_SetPriority(USART3_4_5_6_LPUART1_IRQn, 0, 0);
+		HAL_NVIC_EnableIRQ(USART3_4_5_6_LPUART1_IRQn);
 #endif
 	}
 	else if(huart->Instance == USART4){
@@ -296,6 +302,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 		    hdma_usart4_rx.Init.Priority = DMA_PRIORITY_LOW;
 		    HAL_DMA_Init(&hdma_usart4_rx);
 		   __HAL_LINKDMA(huart,hdmarx,hdma_usart4_rx);
+		   /* USART4 interrupt Init */
+			HAL_NVIC_SetPriority(USART3_4_5_6_LPUART1_IRQn, 0, 0);
+			HAL_NVIC_EnableIRQ(USART3_4_5_6_LPUART1_IRQn);
 #endif
 	}
 	else if(huart->Instance == USART5){
@@ -327,6 +336,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 		    hdma_usart5_rx.Init.Priority = DMA_PRIORITY_LOW;
 		    HAL_DMA_Init(&hdma_usart5_rx);
 		   __HAL_LINKDMA(huart,hdmarx,hdma_usart5_rx);
+		   /* USART5 interrupt Init */
+			HAL_NVIC_SetPriority(USART3_4_5_6_LPUART1_IRQn, 0, 0);
+			HAL_NVIC_EnableIRQ(USART3_4_5_6_LPUART1_IRQn);
 #endif
 	}
 	else if(huart->Instance == USART6){
@@ -358,6 +370,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 		    hdma_usart6_rx.Init.Priority = DMA_PRIORITY_LOW;
 		    HAL_DMA_Init(&hdma_usart6_rx);
 		    __HAL_LINKDMA(huart,hdmarx,hdma_usart6_rx);
+		    /* USART6 interrupt Init */
+		  HAL_NVIC_SetPriority(USART3_4_5_6_LPUART1_IRQn, 0, 0);
+		  HAL_NVIC_EnableIRQ(USART3_4_5_6_LPUART1_IRQn);
 #endif
 	}
 }
