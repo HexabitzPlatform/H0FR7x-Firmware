@@ -25,13 +25,14 @@ TIM_HandleTypeDef htim16; /* micro-second delay counter */
 //TIM_HandleTypeDef htim15; /* milli-second delay counter */
 TIM_HandleTypeDef htim17; /* milli-second delay counter */
 TIM_HandleTypeDef htim1;
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
 extern void MX_TIM1_Init(void);
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /*  Micro-seconds timebase init function - TIM14 (16-bit)
  */
-
 void MX_TIM1_Init(void)
 {
+
+
 
 	  TIM_MasterConfigTypeDef sMasterConfig = {0};
 	  TIM_OC_InitTypeDef sConfigOC = {0};
@@ -39,9 +40,10 @@ void MX_TIM1_Init(void)
 	  TIM_ClockConfigTypeDef sClockSourceConfig;
 	  /* USER CODE BEGIN TIM1_Init 1 */
 
+
 	  /* USER CODE END TIM1_Init 1 */
 	  htim1.Instance = TIM1;
-	  htim1.Init.Prescaler = (uint32_t) (HAL_RCC_GetSysClockFreq()/ PWM_TIMER_CLOCK) - 1;
+	  htim1.Init.Prescaler = (uint32_t) (HAL_RCC_GetSysClockFreq()/1600000) - 1;
 	  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
 	  htim1.Init.Period =0;
 	  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -93,6 +95,37 @@ void MX_TIM1_Init(void)
 
 
 }
+
+
+void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(htim->Instance==TIM1)
+  {
+  /* USER CODE BEGIN TIM1_MspPostInit 0 */
+
+  /* USER CODE END TIM1_MspPostInit 0 */
+
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**TIM1 GPIO Configuration
+    PB6     ------> TIM1_CH3
+    */
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Alternate = GPIO_AF1_TIM1;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /* USER CODE BEGIN TIM1_MspPostInit 1 */
+
+  /* USER CODE END TIM1_MspPostInit 1 */
+  }
+
+}
+
+
+
 void TIM_USEC_Init(void){
 //	TIM_MasterConfigTypeDef sMasterConfig;
 //
@@ -129,32 +162,7 @@ void TIM_USEC_Init(void){
 }
 
 /*-----------------------------------------------------------*/
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
-{
 
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(timHandle->Instance==TIM1)
-  {
-  /* USER CODE BEGIN TIM1_MspPostInit 0 */
-
-  /* USER CODE END TIM1_MspPostInit 0 */
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    /**TIM1 GPIO Configuration
-    PB6    ------> TIM1_CH3N
-
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF2_TIM1;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN TIM1_MspPostInit 1 */
-
-  /* USER CODE END TIM1_MspPostInit 1 */
-  }
-}
 /*-----------------------------------------------------------*/
 
 /*  Milli-seconds timebase init function - TIM15 (16-bit)

@@ -40,22 +40,45 @@ void IND_LED_Init(void){
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(_IND_LED_PORT,&GPIO_InitStruct);
 }
-void Switch_Init(void)
-{
-	GPIO_InitTypeDef GPIO_InitStruct;
 
-	GPIO_InitStruct.Pin = _Switch_PIN;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	GPIO_InitStruct.Pin = _Switch_PIN;
-	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
-	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
+
+
+/*-----------------------------------------------------------*/
+void SENSORS_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct;
+
+  /**I2C2 GPIO Configuration
+  PA6     ------> I2C2_SDA
+  PA7     ------> I2C2_SCL
+  */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF8_I2C2;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    __HAL_RCC_I2C2_CLK_ENABLE();
+
+    /*Configure GPIO pin : PB6 as output*/
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Mode =  GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 }
+
+
+//void Switch_Init(void)
+//{
+//	GPIO_InitTypeDef GPIO_InitStruct;
+//
+//	GPIO_InitStruct.Pin = GPIO_PIN_6;
+//	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+//	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+//
+//}
 /*-----------------------------------------------------------*/
 
 /* --- Check for factory reset condition: 
@@ -119,7 +142,7 @@ BOS_Status GetPortGPIOs(uint8_t port,uint32_t *TX_Port,uint16_t *TX_Pin,uint32_t
 	UART_HandleTypeDef *huart =GetUart(port);
 	
 	if(huart == &huart1){
-#ifdef _Usart1
+#ifdef _Usart1		
 		*TX_Port =(uint32_t ) USART1_TX_PORT;
 		*TX_Pin = USART1_TX_PIN;
 		*RX_Port =(uint32_t ) USART1_RX_PORT;

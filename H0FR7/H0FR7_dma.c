@@ -186,6 +186,10 @@ void DMA_MSG_RX_Setup(UART_HandleTypeDef *huart,DMA_HandleTypeDef *hDMA){
 	/* Remap and link to UART Rx */
 //	RemapAndLinkDMAtoUARTRx(huart,hDMA);
 	//TOBECHECKED
+	//if (huart!=P5uart)
+	//{
+		HAL_UART_Receive_IT(huart,(uint8_t* )&Rx_Data[GetPort(huart) - 1] , 1);
+	//	}
 
 	/* Setup DMA interrupts */
 //	SetupDMAInterrupts(hDMA,MSG_DMA_INT_PRIORITY);
@@ -193,7 +197,7 @@ void DMA_MSG_RX_Setup(UART_HandleTypeDef *huart,DMA_HandleTypeDef *hDMA){
 
 	/* Start DMA stream	*/
 	//HAL_UART_Receive_DMA(huart,(uint8_t* )&Rx_Data[GetPort(huart) - 1] , 1);
-	HAL_UART_Receive_IT(huart,(uint8_t* )&Rx_Data[GetPort(huart) - 1] , 1);
+	//HAL_UART_Receive_IT(huart,(uint8_t* )&Rx_Data[GetPort(huart) - 1] , 1);
 	//HAL_UART_Receive_DMA(huart,(uint8_t* )&UARTRxBuf[GetPort(huart) - 1],
 	//MSG_RX_BUF_SIZE);
 }
