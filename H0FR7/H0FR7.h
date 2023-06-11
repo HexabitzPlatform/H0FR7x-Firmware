@@ -25,7 +25,6 @@
 #include "H0FR7_dma.h"
 #include "H0FR7_inputs.h"
 #include "H0FR7_eeprom.h"
-#include "H0FR7_i2c.h"
 /* Exported definitions -------------------------------------------------------*/
 
 #define	modulePN		_H0FR7
@@ -152,56 +151,21 @@ extern void MX_USART6_UART_Init(void);
 extern void SystemClock_Config(void);
 extern void ExecuteMonitor(void);
 
+extern TIM_HandleTypeDef htim1;
+
+void initialValue(void);
 
 /* -----------------------------------------------------------------------
  |								  APIs							          |  																 	|
 /* -----------------------------------------------------------------------
  */
-uint16_t Read_Word(uint8_t reg);
-void Error_Handler(void);
-void initialValue(void);
-void APDS9950_init(void);
-void WriteRegData(uint8_t reg, uint8_t data);
-void stopStreamMems(void);
-void SamplePIR(bool *pir);
-void SampleColor(uint16_t *Red, uint16_t *Green, uint16_t *Blue);
-void SampleDistance(uint16_t *Proximity);
-void SampleTemperature(float *temperature);
-void SampleHumidity(float *humidity);
-void SampleColorBuf(float *buffer);
-void SampleDistanceBuff(float *buffer);
-void SampleTemperatureBuf(float *buffer);
-void SampleHumidityBuf(float *buffer);
-void SamplePIRBuf(float *buffer);
-void SampleColorToPort(uint8_t port,uint8_t module);
-void SampleDistanceToPort(uint8_t port,uint8_t module);
-void SampleTemperatureToPort(uint8_t port,uint8_t module);
-void SampleHumidityToPort(uint8_t port,uint8_t module);
-void SamplePIRToPort(uint8_t port,uint8_t module);
-void SampleColorToString(char *cstring, size_t maxLen);
-void SampleDistanceToString(char *cstring, size_t maxLen);
-void SampleTemperatureToString(char *cstring, size_t maxLen);
-void SampleHumidityToString(char *cstring, size_t maxLen);
-void SamplePIRToString(char *cstring, size_t maxLen);
-Module_Status StreamColorToBuffer(float *buffer, uint32_t period, uint32_t timeout);
-Module_Status StreamDistanceToBuffer(float *buffer, uint32_t period, uint32_t timeout);
-Module_Status StreamTemperatureToBuffer(float *buffer, uint32_t period, uint32_t timeout);
-Module_Status StreamHumidityToBuffer(float *buffer, uint32_t period, uint32_t timeout);
-Module_Status StreamPIRToBuffer(float *buffer, uint32_t period, uint32_t timeout);
-Module_Status StreamColorToPort(uint8_t port, uint8_t module, uint32_t period, uint32_t timeout);
-Module_Status StreamDistanceToPort(uint8_t port, uint8_t module, uint32_t period, uint32_t timeout);
-Module_Status StreamTemperatureToPort(uint8_t port, uint8_t module, uint32_t period, uint32_t timeout);
-Module_Status StreamHumidityToPort(uint8_t port, uint8_t module, uint32_t period, uint32_t timeout);
-Module_Status StreamPIRToPort(uint8_t port, uint8_t module, uint32_t period, uint32_t timeout);
-Module_Status StreamColorToCLI(uint32_t period, uint32_t timeout);
-Module_Status StreamDistanceToCLI(uint32_t period, uint32_t timeout);
-Module_Status StreamTemperatureToCLI(uint32_t period, uint32_t timeout);
-Module_Status StreamHumidityToCLI(uint32_t period, uint32_t timeout);
-Module_Status StreamPIRToCLI(uint32_t period, uint32_t timeout);
 
-Module_Status CopeParamter(uint8_t Paramter);
+
+
 Module_Status Output_PWM(float dutyCycle);
 Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle);
+
+
 
 void SetupPortForRemoteBootloaderUpdate(uint8_t port);
 void remoteBootloaderUpdate(uint8_t src,uint8_t dst,uint8_t inport,uint8_t outport);
