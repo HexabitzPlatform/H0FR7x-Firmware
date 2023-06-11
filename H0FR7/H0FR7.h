@@ -101,6 +101,48 @@
 #define	USART6_RX_PORT		GPIOA
 #define	USART6_AF			GPIO_AF3_USART6
 
+
+
+#define	_Switch_PIN						GPIO_PIN_6
+#define	_Switch_PORT						GPIOB
+#define _Switch_TIM_CH					TIM_CHANNEL_3
+#define _Switch_GPIO_CLK()				__GPIOB_CLK_ENABLE();
+#define PWM_TIMER_CLOCK					16000000
+#define Switch_PWM_DEF_FREQ				10000
+#define Switch_PWM_DEF_PERIOD			((float) (1/Switch_PWM_FREQ) )
+
+#define ADC_CONVERSION 				  0.0058
+
+#define MOSFET_DEFAULT_MAX_LOOP       2000
+
+#define STOP_MEASUREMENT      		  0
+#define START_MEASUREMENT     		  1
+
+
+#define REQ_IDLE               		  0
+#define REQ_SAMPLE_BUFFER		      1
+#define REQ_SAMPLE_PORT				  2
+#define REQ_SAMPLE_CLI                3
+#define REQ_SAMPLE_VERBOSE_CLI		  4
+#define REQ_STREAM_PORT_CLI           5
+#define REQ_STREAM_VERBOSE_PORT_CLI   6
+#define REQ_STREAM_PORT		          7
+#define REQ_STREAM_BUFFER         	  8
+#define REQ_TIMEOUT             	  9
+#define REQ_MEASUREMENT_READY         10
+#define REQ_TIMEOUT_CLI				  11
+#define REQ_TIMEOUT_VERBOSE_CLI		  12
+#define REQ_TIMEOUT_BUFFER			  13
+#define REQ_STOP					  14
+#define REQ_SAMPLE					  15
+
+#define TIMERID_TIMEOUT_MEASUREMENT   0xFF
+
+/* Macros define Mosfet running mode */
+#define MOSFET_MODE_SINGLE            0x00
+#define MOSFET_MODE_CONTINUOUS        0x01
+#define MOSFET_MODE_CONTINUOUS_TIMED  0x02
+
 /* Module-specific Definitions */
 
 #define NUM_MODULE_PARAMS						7
@@ -112,22 +154,22 @@
 #define _EE_MODULE							500		
 
 /* Module_Status Type Definition */
-typedef enum
-{
-  H0FR7_OK = 0,
-  H0FR7_ERR_UnknownMessage,
-  H0FR7_ERR_RGB,
-  H0FR7_ERR_PROXIMITY,
-  H0FR7_ERR_TEMPRATURE,
-  H0FR7_ERR_HUMIDITY,
-  H0FR7_ERR_PIR,
-  H0FR7_ERR_BUSY,
-  H0FR7_ERR_TIMEOUT,
-  H0FR7_ERR_IO,
-  H0FR7_ERR_TERMINATED,
-  H0FR7_ERR_WrongParams,
-  H0FR7_ERROR = 25
+typedef enum {
+	H0FR7_OK = 0,
+	H0FR7_ERR_UnknownMessage = 1,
+	H0FR7_ERR_Wrong_Value = 2,
+	H0FR7_ERR_Timeout,
+	H0FR7_ERR_WrongParams,
+	H0FR7_STOPED,
+	H0FR7_ERROR = 255
 } Module_Status;
+
+/* Switch_state_t Type Definition */
+typedef enum  {
+	STATE_OFF,
+	STATE_ON,
+	STATE_PWM
+} Switch_state_t;
 
 /* Indicator LED */
 #define _IND_LED_PORT			GPIOB
@@ -151,6 +193,8 @@ extern void MX_USART6_UART_Init(void);
 extern void SystemClock_Config(void);
 extern void ExecuteMonitor(void);
 
+extern Switch_state_t Switch_State;
+extern uint8_t SwitchindMode;
 extern TIM_HandleTypeDef htim1;
 
 void initialValue(void);
@@ -159,11 +203,10 @@ void initialValue(void);
  |								  APIs							          |  																 	|
 /* -----------------------------------------------------------------------
  */
-
-
-
+extern Module_Status Output_on(uint32_t timeout);
+extern Module_Status Output_off(void);
+extern Module_Status Output_toggle(void);
 Module_Status Output_PWM(float dutyCycle);
-Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle);
 
 
 
@@ -174,7 +217,11 @@ void remoteBootloaderUpdate(uint8_t src,uint8_t dst,uint8_t inport,uint8_t outpo
  |								Commands							      |															 	|
 /* -----------------------------------------------------------------------
  */
-
+extern const CLI_Command_Definition_t onCommandDefinition;
+extern const CLI_Command_Definition_t offCommandDefinition;
+extern const CLI_Command_Definition_t toggleCommandDefinition;
+extern const CLI_Command_Definition_t ledModeCommandDefinition;
+extern const CLI_Command_Definition_t pwmCommandDefinition;
 
 #endif /* H0FR7_H */
 

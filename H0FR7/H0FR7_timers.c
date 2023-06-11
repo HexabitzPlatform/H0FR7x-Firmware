@@ -14,19 +14,18 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "BOS.h"
-#include "H0FR7.h"
+//#include "H0FR7.h"
 /*----------------------------------------------------------------------------*/
 /* Configure Timers                                                              */
 /*----------------------------------------------------------------------------*/
 
 /* Variables ---------------------------------------------------------*/
-//TIM_HandleTypeDef htim14; /* micro-second delay counter */
 TIM_HandleTypeDef htim16; /* micro-second delay counter */
-//TIM_HandleTypeDef htim15; /* milli-second delay counter */
+
 TIM_HandleTypeDef htim17; /* milli-second delay counter */
-//TIM_HandleTypeDef htim1;
+
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* htim);
-//extern void MX_TIM1_Init(void);
+extern void MX_TIM1_Init(void);
 /*  Micro-seconds timebase init function - TIM14 (16-bit)
  */
 void MX_TIM1_Init(void)

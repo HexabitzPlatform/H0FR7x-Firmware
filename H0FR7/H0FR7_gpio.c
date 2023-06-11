@@ -44,41 +44,23 @@ void IND_LED_Init(void){
 
 
 /*-----------------------------------------------------------*/
-void SENSORS_GPIO_Init(void)
+void Switch_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitTypeDef GPIO_InitStruct;
 
-  /**I2C2 GPIO Configuration
-  PA6     ------> I2C2_SDA
-  PA7     ------> I2C2_SCL
-  */
-  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF8_I2C2;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    __HAL_RCC_I2C2_CLK_ENABLE();
+	GPIO_InitStruct.Pin = _Switch_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
 
-    /*Configure GPIO pin : PB6 as output*/
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
-    GPIO_InitStruct.Mode =  GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-}
-
-
-//void Switch_Init(void)
-//{
-//	GPIO_InitTypeDef GPIO_InitStruct;
-//
-//	GPIO_InitStruct.Pin = GPIO_PIN_6;
-//	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+//	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 //	GPIO_InitStruct.Pull = GPIO_NOPULL;
 //	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-//	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-//
-//}
+//	GPIO_InitStruct.Pin = _Switch_PIN;
+//	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
+//	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
+}
 /*-----------------------------------------------------------*/
 
 /* --- Check for factory reset condition: 
