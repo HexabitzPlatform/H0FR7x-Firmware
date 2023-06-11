@@ -17,26 +17,21 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32g0xx_hal.h"
 
-#define __N  5         // Number of array modules
+#define __N  2         // Number of array modules
 
 // Array modules
 #define _mod1  1<<3
 #define _mod2  2<<3
-#define _mod3  3<<3
-#define _mod4  4<<3
-#define _mod5  5<<3
+
 // Topology
 static uint16_t array[__N ][7] ={
- {_H18R1, _mod5 | P1,0,0, _mod2 | P1, 0, 0},                         // Module 1      e
+ {_H0FR7, _mod5 | P1,0,0, _mod2 | P1, 0, 0},                         // Module 1      e
  {_H18R1,  _mod1 | P4, 0,0,_mod3 | P1 , 0, 0},              // Module 2      y
- {_H18R1,  _mod2 | P4, 0,0,_mod4 | P1 , 0, 0},              // Module 3      z
- {_H18R1,  _mod3 | P4, 0, 0,0,0, 0},                        // Module 4      x
- { _H0FR7,   _mod1 | P1, 0,0,0, 0, 0},                      // Module 5      mosfet
 };
 
 // Configurations for duplex serial ports
 #if ( _module == 1 )
-  #define  H18R1  1
+  #define  H0FR7  1
   #define  _P1pol_normal  1
   #define  _P2pol_normal  1
   #define  _P3pol_normal  1
