@@ -15,10 +15,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "BOS.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "string.h"
 #include "H0FR7_inputs.h"
+#include "H0FR7_adc.h"
 /* Define UART variables */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -33,11 +31,11 @@ extern uint8_t numOfRecordedSnippets;
 
 
 /* Module exported parameters ------------------------------------------------*/
-float H0FR6_Current = 0.0f;
-#ifdef H0FR7
+float H0FR7_Current = 0.0f;
+
 uint8_t startMeasurement = STOP_MEASUREMENT;
-#endif
-module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR6_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
+
+module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR7_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
 /* Exported variables */
 extern FLASH_ProcessTypeDef pFlash;
 extern uint8_t numOfRecordedSnippets;
@@ -390,8 +388,25 @@ void Module_Peripheral_Init(void){
 	MX_TIM1_Init();
 //	Switch_Init();
 	/* Create module special task (if needed) */
+
+	/* ADC init */
+	MX_ADC1_Init();
+
+	/* Create a Mosfet task */
+	xTaskCreate(MosfetTask,(const char* ) "MosfetTask",(2*configMINIMAL_STACK_SIZE),NULL,osPriorityNormal - osPriorityIdle,&MosfetHandle);
+
+	/* Create a timeout timer for Switch_on() API */
+	xTimerSwitch =xTimerCreate("SwitchTimer",pdMS_TO_TICKS(1000),pdFALSE,(void* )1,SwitchTimerCallback);
+
+	/* Switch GPIO */
+//	Switch_Init();
+
 }
 
+void initialValue(void)
+{
+	mosfetCurrent=0;
+}
 /*-----------------------------------------------------------*/
 /* --- H0FR7 message processing task.
  */
@@ -475,15 +490,246 @@ void RegisterModuleCLICommands(void){
 
 /*-----------------------------------------------------------*/
 
-void initialValue(void){
+
+
+
+/*-----------------------------------------------------------*/
+/* --- Switch timer callback ---*/
+void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
+
+	Output_off();
+
+
+
+	HAL_ADC_Stop(&hadc1);
+	uint32_t tid = 0;
+
+	/* close DMA stream */
+	tid = (uint32_t) pvTimerGetTimerID(xTimerSwitch);
+	if (TIMERID_TIMEOUT_MEASUREMENT == tid) {
+		startMeasurement = STOP_MEASUREMENT;
+		mosfetMode = REQ_IDLE;		// Stop the streaming task
+	}
+
 
 }
+/*-----------------------------------------------------------*/
+/* --- ADC Calculation for the Current in H0FR7 (Mosfet)---*/
+static float Current_Calculation(void) {
+	ADC_ChannelConfTypeDef sConfig ={0};
 
-
+	sConfig.Channel = ADC_CHANNEL_0;
+	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
+	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
+	Output_on(3000);
+	Delay_ms(1000);
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1,10);
+	rawValues =HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+	sConfig.Channel = ADC_CHANNEL_0;
+	sConfig.Rank = ADC_RANK_NONE;
+	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
+	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
+	return (rawValues * ADC_CONVERSION);
+}
 /*-----------------------------------------------------------*/
 
+/* --- Stop ADC Calculation and Switch off Mosfet ---*/
+static void mosfetStopMeasurement(void) {
+	Output_off();
+	HAL_ADC_Stop(&hadc1);
+}
+
+void TIM1_DeInit(void) {
+	HAL_NVIC_DisableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);
+	HAL_TIM_Base_DeInit(&htim1);
+	HAL_TIM_PWM_DeInit(&htim1);
+	__TIM1_CLK_DISABLE();
+}
 /*-----------------------------------------------------------*/
 
+
+/* --- Definition of Mosfet Prime Task ---*/
+static void MosfetTask(void *argument) {
+
+	uint32_t t0 = 0;
+	while (1) {
+		switch (mosfetMode) {
+				case REQ_STREAM_PORT_CLI:
+					t0 = HAL_GetTick();
+					Current = Current_Calculation();
+					SendMeasurementResult(mosfetMode, Current, 0, 0, NULL);
+					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
+						taskYIELD();
+					}
+					break;
+
+				case REQ_STREAM_VERBOSE_PORT_CLI:
+					t0 = HAL_GetTick();
+					Current = Current_Calculation();
+					SendMeasurementResult(mosfetMode, Current, 0, 0, NULL);
+					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
+						taskYIELD();
+					}
+					break;
+
+				case REQ_STREAM_PORT:
+					t0 = HAL_GetTick();
+					Current = Current_Calculation();
+					SendMeasurementResult(mosfetMode, Current, 0, PcPort, NULL);
+					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
+						taskYIELD();
+					}
+					break;
+
+				case REQ_STREAM_BUFFER:
+					t0 = HAL_GetTick();
+					Current = Current_Calculation();
+					SendMeasurementResult(mosfetMode, Current, mosfetModule,
+							0, ptrBuffer);
+					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
+						taskYIELD();
+					}
+					break;
+
+				case REQ_STOP:
+					Stop_current_measurement();
+					break;
+
+				default:
+					mosfetMode = REQ_STOP;
+					break;
+				}
+
+				taskYIELD();
+			}
+}
+/*-----------------------------------------------------------*/
+
+/* --- Send measurement results --- */
+static Module_Status SendMeasurementResult(uint8_t request, float value, uint8_t module,
+		uint8_t port, float *Buffer) {
+
+	Module_Status state = H0FR7_OK;
+	int8_t *pcOutputString;
+	static const int8_t *pcCurrentMsg = (int8_t*) "Current: %.2f\r\n";
+	static const int8_t *pcCurrentVerboseMsg = (int8_t*) "%.2f\r\n";
+	static const int8_t *pcOutTimeout = (int8_t*) "TIMEOUT\r\n";
+	float message;
+	static uint8_t temp[4];
+
+	/* Get CLI output buffer */
+	pcOutputString = FreeRTOS_CLIGetOutputBuffer();
+
+
+	message = value;
+
+	// If measurement timeout occured
+	if (mosfetState == REQ_TIMEOUT) {
+		switch (request) {
+				case REQ_SAMPLE_CLI:
+				case REQ_STREAM_PORT_CLI:
+					request = REQ_TIMEOUT_CLI;
+					break;
+				case REQ_SAMPLE_VERBOSE_CLI:
+				case REQ_STREAM_VERBOSE_PORT_CLI:
+					request = REQ_TIMEOUT_VERBOSE_CLI;
+					break;
+				case REQ_STREAM_BUFFER:
+					request = REQ_TIMEOUT_BUFFER;
+					break;
+				default:
+					break;
+		}
+	}
+
+	// Send the value to appropriate outlet
+	switch (mosfetMode) {
+	case REQ_SAMPLE_CLI:
+		case REQ_STREAM_PORT_CLI:
+			sprintf((char*) pcOutputString, (char*) pcCurrentMsg, message);
+			writePxMutex(PcPort, (char*) pcOutputString,
+					strlen((char*) pcOutputString), cmd500ms, HAL_MAX_DELAY);
+			CheckForEnterKey();
+			break;
+
+		case REQ_SAMPLE_VERBOSE_CLI:
+		case REQ_STREAM_VERBOSE_PORT_CLI:
+
+			sprintf((char*) pcOutputString, (char*) pcCurrentVerboseMsg, message);
+			writePxMutex(PcPort, (char*) pcOutputString,
+					strlen((char*) pcOutputString), cmd500ms, HAL_MAX_DELAY);
+			CheckForEnterKey();
+			break;
+
+		case REQ_SAMPLE_PORT:
+		case REQ_STREAM_PORT:
+
+			if (module == myID) {
+				temp[0] = *((__IO uint8_t*) (&message) + 3);
+				temp[1] = *((__IO uint8_t*) (&message) + 2);
+				temp[2] = *((__IO uint8_t*) (&message) + 1);
+				temp[3] = *((__IO uint8_t*) (&message) + 0);
+				writePxMutex(port, (char*) &temp, 4 * sizeof(uint8_t), 10, 10);
+			} else {
+				messageParams[0] = port;
+				messageParams[1] = *((__IO uint8_t*) (&message) + 3);
+				messageParams[2] = *((__IO uint8_t*) (&message) + 2);
+				messageParams[3] = *((__IO uint8_t*) (&message) + 1);
+				messageParams[4] = *((__IO uint8_t*) (&message) + 0);
+				SendMessageToModule(module, CODE_PORT_FORWARD,
+						sizeof(uint32_t) + 1);
+			}
+
+			break;
+
+		case REQ_SAMPLE_BUFFER:
+		case REQ_STREAM_BUFFER:
+			memset(Buffer, 0, sizeof(float));
+			memcpy(Buffer, &message, sizeof(float));
+			break;
+
+
+
+		case REQ_TIMEOUT_CLI:
+			strcpy((char*) pcOutputString, (char*) pcOutTimeout);
+			writePxMutex(PcPort, (char*) pcOutputString,
+				strlen((char*) pcOutputString), cmd500ms, HAL_MAX_DELAY);
+			CheckForEnterKey();
+			break;
+
+		case REQ_TIMEOUT_VERBOSE_CLI:
+			sprintf((char*) pcOutputString, (char*) pcCurrentVerboseMsg, 0);
+			writePxMutex(PcPort, (char*) pcOutputString,
+				strlen((char*) pcOutputString), cmd500ms, HAL_MAX_DELAY);
+			CheckForEnterKey();
+			break;
+
+		default:
+			break;
+	}
+
+	return (state);
+}
+/*-----------------------------------------------------------*/
+
+/* --- Check for CLI stop key --- */
+static void CheckForEnterKey(void) {
+	stopB = 0;
+	// Look for ENTER key to stop the stream
+	for (uint8_t chr = 0; chr < MSG_RX_BUF_SIZE; chr++) {
+		if (UARTRxBuf[PcPort - 1][chr] == '\r') {
+			UARTRxBuf[PcPort - 1][chr] = 0;
+			mosfetMode = REQ_STOP;		// Stop the streaming task
+			xTimerStop(xTimerSwitch, 0); // Stop any running timeout timer
+			stopB = 1;
+			break;
+		}
+	}
+}
+/*-----------------------------------------------------------*/
 /* --- Set Switch PWM frequency and dutycycle ---*/
 Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
 	Module_Status result = H0FR7_OK;
@@ -610,8 +856,138 @@ Module_Status Output_PWM(float dutyCycle) {
 
 	return result;
 }
+/*-----------------------------------------------------------*/
+
+/* --- Read the Current value with Analog Digital Converter (ADC) in H0FR7 ---
+ */
+float Sample_current_measurement(void) {
+	float temp;
+	mosfetMode = REQ_SAMPLE;
+	startMeasurement = START_MEASUREMENT;
+
+	if (mosfetState == REQ_TIMEOUT) {
+		return 0;
+	} else {
+		temp = Current_Calculation();
+		mosfetState = REQ_IDLE;
+		return temp;
+	}
+}
+
+/*-----------------------------------------------------------*/
+/* --- Stream measurements continuously to a port --- */
+float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period,uint32_t Timeout) {
+	float temp;
+	mosfetPort = Port;
+	mosfetModule = Module;
+	mosfetPeriod = Period;
+	mosfetTimeout = Timeout;
+	mosfetMode = REQ_STREAM_PORT;
+
+	if ((mosfetTimeout > 0) && (mosfetTimeout < 0xFFFFFFFF)) {
+		/* start software timer which will create event timeout */
+		/* Create a timeout timer */
+		xTimerSwitch = xTimerCreate("mosfetTimer",
+				pdMS_TO_TICKS(mosfetTimeout), pdFALSE,
+				(void*) TIMERID_TIMEOUT_MEASUREMENT, SwitchTimerCallback);
+		/* Start the timeout timer */
+		xTimerStart(xTimerSwitch, portMAX_DELAY);
+	}
+	temp = Current_Calculation();
+	SendMeasurementResult(mosfetMode, temp, Module, Port, NULL);
+	return (H0FR7_OK);
+}
+/*-----------------------------------------------------------*/
+
+/* --- stream Current value to CLI
+ */
+float Stream_current_To_CLI(uint32_t Period, uint32_t Timeout) {
+	float temp;
+	mosfetPeriod = Period;
+	mosfetTimeout = Timeout;
+	mosfetMode = REQ_STREAM_PORT_CLI;
+
+	if ((mosfetTimeout > 0) && (mosfetTimeout < 0xFFFFFFFF)) {
+		/* start software timer which will create event timeout */
+		/* Create a timeout timer */
+		xTimerSwitch = xTimerCreate("mosfetTimer",
+				pdMS_TO_TICKS(mosfetTimeout), pdFALSE,
+				(void*) TIMERID_TIMEOUT_MEASUREMENT, SwitchTimerCallback);
+		/* Start the timeout timer */
+		xTimerStart(xTimerSwitch, portMAX_DELAY);
+	}
+	if (mosfetTimeout > 0) {
+		startMeasurement = START_MEASUREMENT;
+	}
+	temp = Current_Calculation();
+	SendMeasurementResult(mosfetMode, temp, myID, PcPort, NULL);
+	return (H0FR7_OK);
+}
+/*-----------------------------------------------------------*/
+
+/* --- stream Current value from to CLI
+ */
+float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout) {
+	float temp;
+	mosfetPeriod = Period;
+	mosfetTimeout = Timeout;
+	mosfetMode = REQ_STREAM_VERBOSE_PORT_CLI;
+
+	if ((mosfetTimeout > 0) && (mosfetTimeout < 0xFFFFFFFF)) {
+		/* start software timer which will create event timeout */
+		/* Create a timeout timer */
+		xTimerSwitch = xTimerCreate("mosfetTimer",
+				pdMS_TO_TICKS(mosfetTimeout), pdFALSE,
+				(void*) TIMERID_TIMEOUT_MEASUREMENT, SwitchTimerCallback);
+		/* Start the timeout timer */
+		xTimerStart(xTimerSwitch, portMAX_DELAY);
+	}
+	if (mosfetTimeout > 0) {
+		startMeasurement = START_MEASUREMENT;
+	}
+	temp = Current_Calculation();
+	SendMeasurementResult(mosfetMode, temp, myID, PcPort, NULL);
+	return (H0FR7_OK);
+}
+/*-----------------------------------------------------------*/
+
+float Stream_current_To_Buffer(float *Buffer, uint32_t Period, uint32_t Timeout)
+{
+	float temp;
+	mosfetPeriod=Period;
+	mosfetTimeout=Timeout;
+	ptrBuffer=Buffer;
+	mosfetMode=REQ_STREAM_BUFFER;
+
+	if ((mosfetTimeout > 0) && (mosfetTimeout < 0xFFFFFFFF))
+  {
+	  /* start software timer which will create event timeout */
+		/* Create a timeout timer */
+		xTimerSwitch = xTimerCreate( "mosfetTimer", pdMS_TO_TICKS(mosfetTimeout), pdFALSE, ( void * ) TIMERID_TIMEOUT_MEASUREMENT, SwitchTimerCallback );
+		/* Start the timeout timer */
+		xTimerStart( xTimerSwitch, portMAX_DELAY );
+	}
+	temp = Current_Calculation();
+	SendMeasurementResult(mosfetMode, temp, 0, 0, Buffer);
+	return (H0FR7_OK);
+}
+
+/*-----------------------------------------------------------*/
+
+/* --- Stop Current measurement --- */
+Module_Status Stop_current_measurement(void) {
+
+	Module_Status state = H0FR7_OK;
+	mosfetMode = REQ_IDLE;
+	startMeasurement = STOP_MEASUREMENT;
+	xTimerStop(xTimerSwitch, 0);
+
+	mosfetStopMeasurement();
 
 
+	return state;
+}
+/*-----------------------------------------------------------*/
 /* -----------------------------------------------------------------------
  |								Commands							      |
    -----------------------------------------------------------------------
