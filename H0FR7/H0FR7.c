@@ -413,20 +413,15 @@ void Module_Peripheral_Init(void){
 	MX_USART6_UART_Init();
 
 	MX_TIM1_Init();
-//	Switch_Init();
+;
 	/* Create module special task (if needed) */
 
 	/* ADC init */
 	MX_ADC1_Init();
 
 	/* Create a Mosfet task */
-	xTaskCreate(MosfetTask,(const char* ) "MosfetTask",(2*configMINIMAL_STACK_SIZE),NULL,osPriorityNormal - osPriorityIdle,&MosfetHandle);
+	xTaskCreate(MosfetTask,(const char* ) "MosfetTask",(2*configMINIMAL_STACK_SIZE),NULL,0,&MosfetHandle);
 
-	/* Create a timeout timer for Switch_on() API */
-	xTimerSwitch =xTimerCreate("SwitchTimer",pdMS_TO_TICKS(1000),pdFALSE,(void* )1,SwitchTimerCallback);
-
-	/* Switch GPIO */
-//	Switch_Init();
 
 }
 
@@ -583,7 +578,7 @@ void TIM1_DeInit(void) {
 
 /* --- Definition of Mosfet Prime Task ---*/
 static void MosfetTask(void *argument) {
-HAL_Delay(10);
+
 	uint32_t t0 = 0;
 	while (1) {
 		switch (mosfetMode) {
@@ -632,7 +627,7 @@ HAL_Delay(10);
 					mosfetMode = REQ_STOP;
 					break;
 				}
-
+		t0 = HAL_GetTick();
 				taskYIELD();
 			}
 }
@@ -741,6 +736,12 @@ static Module_Status SendMeasurementResult(uint8_t request, float value, uint8_t
 			break;
 	}
 
+	    /* start software timer which will create event timeout */
+	    /* Create a timeout timer */
+		xTimerSwitch =xTimerCreate("SwitchTimer",pdMS_TO_TICKS(1000),pdFALSE,(void* )1,SwitchTimerCallback);
+	    /* Start the timeout timer */
+	    xTimerStart( xTimerSwitch, portMAX_DELAY );
+
 	return (state);
 }
 /*-----------------------------------------------------------*/
@@ -784,13 +785,12 @@ Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
  */
 Module_Status Output_on(uint32_t timeout) {
 	Module_Status result = H0FR7_OK;
-//	MX_TIM1_Init();
+
 
 	Set_Switch_PWM(1600000, 100);
 
 
-	/* Turn on */
-//	HAL_GPIO_WritePin(_Switch_PORT, _Switch_PIN, GPIO_PIN_SET);
+
 
 	/* Indicator LED */
 	if (SwitchindMode)
@@ -821,13 +821,7 @@ Module_Status Output_off(void) {
 	/* Turn off PWM and re-initialize GPIO if needed */
 		HAL_TIM_PWM_Stop(&htim1, _Switch_TIM_CH);
 		htim1.Instance->CCR3=0;
-//	MX_TIM1_Init();
-//	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 
-//	result = Set_Switch_PWM(1600000, 0);
-
-//	/* Turn off */
-//	HAL_GPIO_WritePin(_Switch_PORT, _Switch_PIN, GPIO_PIN_RESET);
 
 	/* Indicator LED */
 	if (SwitchindMode)
@@ -844,8 +838,6 @@ Module_Status Output_off(void) {
 Module_Status Output_toggle(void) {
 	Module_Status result = H0FR7_OK;
 
-//		MX_TIM1_Init();
-//		HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 	if (Switch_state) {
 		result = Output_off();
 	} else {
