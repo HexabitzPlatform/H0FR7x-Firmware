@@ -79,7 +79,9 @@ portBASE_TYPE offCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8
 portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 portBASE_TYPE ledModeCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
-
+portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
+portBASE_TYPE mosfetStopCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
 /* CLI command structure : on */
 const CLI_Command_Definition_t onCommandDefinition =
 		{ (const int8_t*) "on", /* The command string to type. */
@@ -118,6 +120,31 @@ const CLI_Command_Definition_t pwmCommandDefinition =
 				pwmCommand, /* The function to run. */
 				1 /* One parameter is expected. */
 		};
+
+/* CLI command structure : sample */
+const CLI_Command_Definition_t mosfetSampleCommandDefinition =
+		{ (const int8_t*) "sample", /* The command string to type. */
+				(const int8_t*) "sample:\r\n Sample command to get the Current consumption in (Amp)\r\n\r\n",
+				mosfetSampleCommand, /* The function to run. */
+				0 /* Zero parameter is expected. */
+		};
+/*-----------------------------------------------------------*/
+/* CLI command structure : stream */
+const CLI_Command_Definition_t mosfetStreamCommandDefinition =
+		{ (const int8_t*) "stream", /* The command string to type. */
+				(const int8_t*) "stream:\r\nStream measurements to the CLI with this syntax:\n\r\tstream period(in ms) timeout(in ms)\n\r\tstream period timeout -v\t(for verbose output)\
+			\n\rOr to a specific port in a specific module with this syntax:\r\n\tstream period timeout port(p1..px) module\n\rOr to internal buffer with this syntax:\r\n\tstream period timeout buffer.\t(Buffer here is a literal value and can be accessed in the CLI using module parameter: current)\r\n\r\n",
+				mosfetStreamCommand, /* The function to run. */
+				-1 /* Multiple parameters are expected. */
+		};
+/*-----------------------------------------------------------*/
+/* CLI command structure : stop */
+const CLI_Command_Definition_t mosfetStopCommandDefinition = {
+		(const int8_t*) "stop", /* The command string to type. */
+		(const int8_t*) "stop:\r\nStop continuous or timed measurement\r\n\r\n",
+		mosfetStopCommand, /* The function to run. */
+		0 /* No parameters are expected. */
+};
 /*-----------------------------------------------------------*/
 
 
@@ -461,6 +488,9 @@ void RegisterModuleCLICommands(void){
 	FreeRTOS_CLIRegisterCommand(&toggleCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&ledModeCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&pwmCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&mosfetSampleCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&mosfetStreamCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&mosfetStopCommandDefinition);
 
 }
 
@@ -553,7 +583,7 @@ void TIM1_DeInit(void) {
 
 /* --- Definition of Mosfet Prime Task ---*/
 static void MosfetTask(void *argument) {
-
+HAL_Delay(10);
 	uint32_t t0 = 0;
 	while (1) {
 		switch (mosfetMode) {
@@ -1184,6 +1214,210 @@ portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	 pdFALSE. */
 	return pdFALSE;
 }
+/*-----------------------------------------------------------*/
+portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	int8_t *pcParameterString1;
+	portBASE_TYPE xParameterStringLength1 = 0;
+	float Current = 0;
+	static const int8_t *pcOKMessage = (int8_t*) "Current: %.3f Amp\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the value. */
+	Current = Current_Calculation();
+	mosfetCurrent = Current;
+
+	/* Respond to the command */
+	sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, Current);
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE mosfetStreamCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	static const int8_t *pcMessageBuffer =
+			(int8_t*) "Streaming measurements to internal buffer. Access in the CLI using module parameter: current\n\r";
+	static const int8_t *pcMessageModule =
+			(int8_t*) "Streaming measurements to port P%d in module #%d\n\r";
+	static const int8_t *pcMessageCLI =
+			(int8_t*) "Streaming measurements to the CLI\n\n\r";
+	static const int8_t *pcMessageError = (int8_t*) "Wrong parameter\r\n";
+	static const int8_t *pcMessageStopMsg =
+				(int8_t*) "Streaming stopped successfully\n\r";
+
+	int8_t *pcParameterString1; /* period */
+	int8_t *pcParameterString2; /* timeout */
+	int8_t *pcParameterString3; /* port or buffer */
+	int8_t *pcParameterString4; /* module */
+	portBASE_TYPE xParameterStringLength1 = 0;
+	portBASE_TYPE xParameterStringLength2 = 0;
+	portBASE_TYPE xParameterStringLength3 = 0;
+	portBASE_TYPE xParameterStringLength4 = 0;
+
+	uint32_t Period = 0;
+	uint32_t Timeout = 0;
+	uint8_t Port = 0;
+	uint8_t Module = 0;
+	bool b;
+
+	Module_Status result = H0FR7_OK;
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	/* Obtain the 1st parameter string: period */
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1,
+			&xParameterStringLength1);
+	/* Obtain the 2nd parameter string: timeout */
+	pcParameterString2 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 2,
+			&xParameterStringLength2);
+	/* Obtain the 3rd parameter string: port */
+	pcParameterString3 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 3,
+			&xParameterStringLength3);
+	/* Obtain the 4th parameter string: module */
+	pcParameterString4 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 4,
+			&xParameterStringLength4);
+
+	if (NULL != pcParameterString1) {
+		Period = atoi((char*) pcParameterString1);
+	} else {
+		result = H0FR7_ERR_WrongParams;
+	}
+	if (NULL != pcParameterString2) {
+		if (!strncmp((const char*) pcParameterString2, "inf", 3)) {
+			Timeout = portMAX_DELAY;
+		} else {
+			Timeout = atoi((char*) pcParameterString2);
+		}
+	} else {
+		result = H0FR7_ERR_WrongParams;
+	}
+
+	/* streaming data to internal buffer (module parameter) */
+		if (NULL != pcParameterString3 && !strncmp((const char *)pcParameterString3, "buffer", 6))
+		{
+			strcpy(( char * ) pcWriteBuffer, ( char * ) pcMessageBuffer);
+
+			Stream_current_To_Buffer(&mosfetBuffer, Period, Timeout);
+
+			// Return right away here as we don't want to block the CLI
+			return pdFALSE;
+		}
+	/* streaming data to port */
+	else if (NULL != pcParameterString3 && NULL != pcParameterString4
+			&& pcParameterString3[0] == 'p') {
+		Port = (uint8_t) atol((char*) pcParameterString3 + 1);
+		Module = atoi((char*) pcParameterString4);
+		sprintf((char*) pcWriteBuffer, (char*) pcMessageModule, Port, Module);
+		Stream_current_To_Port(Period, Timeout, Port, Module);
+		// Return right away here as we don't want to block the CLI
+		return pdFALSE;
+	}
+		/* Stream to the CLI */
+			else if (NULL == pcParameterString3) {
+				strcpy((char*) pcWriteBuffer, (char*) pcMessageCLI);
+				writePxMutex(PcPort, (char*) pcWriteBuffer,
+						strlen((char*) pcWriteBuffer), cmd50ms, HAL_MAX_DELAY);
+				Stream_current_To_CLI(Period, Timeout);
+
+				/* Wait till the end of stream */
+				while (startMeasurement != STOP_MEASUREMENT) {
+					taskYIELD();
+				}
+			}
+
+			else if (NULL != pcParameterString3
+					&& !strncmp((const char*) pcParameterString3, "-v", 2)) {
+				strcpy((char*) pcWriteBuffer, (char*) pcMessageCLI);
+				writePxMutex(PcPort, (char*) pcWriteBuffer,
+						strlen((char*) pcWriteBuffer), cmd50ms, HAL_MAX_DELAY);
+				Stream_current_To_CLI_V(Period, Timeout);
+
+				/* Wait till the end of stream */
+				while (startMeasurement != STOP_MEASUREMENT) {taskYIELD();}
+			} else {
+				result = H0FR7_ERR_WrongParams;
+					}
+
+	if (H0FR7_ERR_WrongParams == result) {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessageError);
+	}
+
+	Stop_current_measurement();
+
+		if (stopB) {
+			strcpy((char*) pcWriteBuffer, (char*) pcMessageStopMsg);
+			writePxMutex(PcPort, (char*) pcWriteBuffer,
+					strlen((char*) pcWriteBuffer), cmd50ms, HAL_MAX_DELAY);
+			memset((char*) pcWriteBuffer, 0, strlen((char*) pcWriteBuffer));
+			stopB = 0;
+		} else {
+			/* clean terminal output */
+			memset((char*) pcWriteBuffer, 0, strlen((char*) pcWriteBuffer));
+		}
+
+	/* There is no more data to return after this single string, so return pdFALSE. */
+	return pdFALSE;
+}
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE mosfetStopCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	Module_Status result = H0FR7_OK;
+	static const int8_t *pcMessageOK =
+			(int8_t*) "Streaming stopped successfully\r\n";
+	static const int8_t *pcMessageError =
+			(int8_t*) "Command failed! Please try again or reboot\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) pcCommandString;
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	result = Stop_current_measurement();
+
+	if (H0FR7_OK == result) {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessageOK);
+	} else {
+		strcpy((char*) pcWriteBuffer, (char*) pcMessageError);
+	}
+
+	/* There is no more data to return after this single string, so return pdFALSE. */
+	return pdFALSE;
+}
+
+/*-----------------------------------------------------------*/
+
+portBASE_TYPE currentModParamCommand(int8_t *pcWriteBuffer,
+		size_t xWriteBufferLen, const int8_t *pcCommandString) {
+	static const int8_t *pcJoystickVerboseMsg = (int8_t*) "%.3f\r\n";
+
+	/* Remove compile time warnings about unused parameters, and check the
+	 write buffer is not NULL.  NOTE - for simplicity, this example assumes the
+	 write buffer length is adequate, so does not check for buffer overflows. */
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	sprintf((char*) pcWriteBuffer, (char*) pcJoystickVerboseMsg,
+			mosfetBuffer);
+
+	/* There is no more data to return after this single string, so return pdFALSE. */
+	return pdFALSE;
+}
+
 /*-----------------------------------------------------------*/
 
 /************************ (C) COPYRIGHT HEXABITZ *****END OF FILE****/
