@@ -32,13 +32,28 @@ extern uint8_t numOfRecordedSnippets;
 module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr = NULL, .paramFormat =FMT_FLOAT, .paramName =""}};
 
 /* Private variables ---------------------------------------------------------*/
+TimerHandle_t xTimerSwitch = NULL;
+TaskHandle_t MosfetHandle = NULL;
+Switch_state_t Switch_state = STATE_OFF, Switch_Oldstate = STATE_ON;
+uint8_t SwitchindMode = 0;
+uint8_t stream_index = 0;
+uint8_t mosfetPort, mosfetModule, mosfetState, mosfetMode;
+uint32_t rawValues, mosfetPeriod, mosfetTimeout, t0, temp32;
+float tempFloat, Switch_OldDC;
+float mosfetBuffer = 0;
+float Current = 0.0f;
+float *ptrBuffer = &mosfetBuffer;
+bool stopB = 0;
+float mosfetCurrent __attribute__((section(".mySection")));
 TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
-void MX_TIM1_Init(void);
-void MX_TIM2_Init(void);
-//TIM_HandleTypeDef htim16;
+
+
+
 
 /* Private function prototypes -----------------------------------------------*/
+void MX_TIM1_Init(void);
+void TIM1_DeInit(void);
+extern void Switch_Init(void);
 void ExecuteMonitor(void);
 void FLASH_Page_Eras(uint32_t Addr );
 
@@ -322,7 +337,7 @@ void Module_Peripheral_Init(void){
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
 	MX_TIM1_Init();
-//	MX_TIM2_Init();
+
 
 	/* Create module special task (if needed) */
 
@@ -405,9 +420,119 @@ void RegisterModuleCLICommands(void){
 /* -----------------------------------------------------------------------
  |								  APIs							          | 																 	|
 /* -----------------------------------------------------------------------
+ *
  */
+void TIM1_DeInit(void) {
+	HAL_NVIC_DisableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);
+	HAL_TIM_Base_DeInit(&htim1);
+	HAL_TIM_PWM_DeInit(&htim1);
+	__TIM1_CLK_DISABLE();
+}
+/* --- Set Switch PWM frequency and dutycycle ---*/
+Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
+	Module_Status result = H0FRx_OK;
+	uint32_t ARR = 1600;
 
 
+
+	/* PWM period */
+	htim1.Instance->ARR = ARR - 1;
+
+	/* PWM duty cycle */
+	htim1.Instance->CCR3 = ((float) dutycycle / 100.0f) * ARR;
+
+
+
+
+	return result;
+}
+Module_Status Output_PWM(float dutyCycle) {
+	Module_Status result = H0FRx_OK;
+
+	if (dutyCycle < 0 || dutyCycle > 100)
+		return H0FRx_ERR_WrongParams;
+
+	/* Start the PWM */
+
+	MX_TIM1_Init();
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+
+	result = Set_Switch_PWM(1600000, dutyCycle);
+
+
+		/* Indicator LED */
+
+			IND_ON();
+			if(dutyCycle==0)
+			IND_OFF();
+
+
+
+	return result;
+}
+Module_Status Output_on(uint32_t timeout) {
+	Module_Status result = H0FRx_OK;
+
+#if defined(H0FR6) || defined(H0FR7)
+	/* Turn off PWM and re-initialize GPIO if needed */
+	if (STATE_PWM == STATE_PWM) {
+		HAL_TIM_PWM_Stop(&htim1, _Switch_TIM_CH);
+		TIM1_DeInit();
+		Switch_Init();
+	}
+#endif
+
+	/* Turn on */
+	HAL_GPIO_WritePin(_Switch_PORT, _Switch_PIN, GPIO_PIN_SET);
+
+	/* Indicator LED */
+	if (SwitchindMode)
+		IND_ON();
+
+	/* Timeout */
+	if (timeout != portMAX_DELAY) {
+		/* Stop the timer if it's already running */
+		if (xTimerIsTimerActive(xTimerSwitch))
+			xTimerStop(xTimerSwitch, 100);
+		/* Update timer timeout - This also restarts the timer */
+		xTimerChangePeriod(xTimerSwitch, pdMS_TO_TICKS(timeout), 100);
+	}
+
+	/* Update Switch state */
+	Switch_state = STATE_ON;
+	Switch_Oldstate = Switch_state;
+
+	return result;
+}
+
+/*-----------------------------------------------------------*/
+
+/* --- Turn off the solid state Switch ---
+ */
+Module_Status Output_off(void) {
+	Module_Status result = H0FRx_OK;
+
+#if defined(H0FR6) || defined(H0FR7)
+	/* Turn off PWM and re-initialize GPIO if needed */
+	if (Switch_state == STATE_PWM) {
+		HAL_TIM_PWM_Stop(&htim1, _Switch_TIM_CH);
+		TIM1_DeInit();
+		Switch_Init();
+	}
+#endif
+
+	/* Turn off */
+	HAL_GPIO_WritePin(_Switch_PORT, _Switch_PIN, GPIO_PIN_RESET);
+
+	/* Indicator LED */
+	if (SwitchindMode)
+		IND_OFF();
+
+	/* Update Switch state */
+	Switch_state = STATE_OFF;
+
+	return result;
+}
 /* -----------------------------------------------------------------------
  |								Commands							      |
    -----------------------------------------------------------------------

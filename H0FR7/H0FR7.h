@@ -216,11 +216,11 @@ extern uint8_t SwitchindMode;
  |								  APIs							          |  																 	|
 /* -----------------------------------------------------------------------
  */
-extern Module_Status Output_on(uint32_t timeout);
-extern Module_Status Output_off(void);
+Module_Status Output_on(uint32_t timeout);
+Module_Status Output_off(void);
 extern Module_Status Output_toggle(void);
 #if defined(H0FR6) || defined(H0FR7)
-	extern Module_Status Output_PWM(float dutyCycle);
+Module_Status Output_PWM(float dutyCycle);
 #endif
 #ifdef H0FR7
 	extern float Sample_current_measurement(void);
