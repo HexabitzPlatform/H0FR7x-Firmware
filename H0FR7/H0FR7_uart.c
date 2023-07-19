@@ -1,8 +1,10 @@
 /*
  BitzOS (BOS) V0.2.9 - Copyright (C) 2017-2023 Hexabitz
  All rights reserved
+
  File Name     : H0FR7_uart.c
  Description   : Source Code provides configuration for USART instances.
+
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -29,7 +31,7 @@ void MX_USART1_UART_Init(void){
 	huart1.Init.OneBitSampling = UART_ONEBIT_SAMPLING_DISABLED;
 	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 	HAL_UART_Init(&huart1);
-#if _P6pol_reversed
+#if _P4pol_reversed
 		huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart1.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart1);
@@ -73,7 +75,7 @@ void MX_USART3_UART_Init(void){
 	huart3.Init.OneBitSampling = UART_ONEBIT_SAMPLING_DISABLED;
 	huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 	HAL_UART_Init(&huart3);
-#if _P4pol_reversed
+#if _P3pol_reversed
 		huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart3.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart3);
@@ -139,7 +141,7 @@ void MX_USART6_UART_Init(void){
 	huart6.Init.OneBitSampling = UART_ONEBIT_SAMPLING_DISABLED;
 	huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 	HAL_UART_Init(&huart6);
-#if _P3pol_reversed
+#if _P6pol_reversed
 		huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart6.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart6);

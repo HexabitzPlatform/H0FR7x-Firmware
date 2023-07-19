@@ -14,9 +14,6 @@ uint8_t temp_length[NumOfPorts] = {0};
 uint8_t temp_index[NumOfPorts] = {0};
 uint8_t* error_restart_message = "Restarting...\r\n";
 
-extern uint8_t indexInput, flagaaa;
-extern char ss[100];
-extern char str1[50];
 
 /* External variables --------------------------------------------------------*/
 extern uint8_t UARTRxBuf[NumOfPorts][MSG_RX_BUF_SIZE];
@@ -217,7 +214,6 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart){
 /*-----------------------------------------------------------*/
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-
 	uint8_t port_number = GetPort(huart);
 	uint8_t port_index = port_number - 1;
 	if(Rx_Data[port_index] == 0x0D && portStatus[port_number] == FREE)

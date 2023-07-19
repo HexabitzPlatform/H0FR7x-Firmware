@@ -50,35 +50,7 @@ static uint16_t array[__N ][7] ={
   #define  _P6pol_normal  1
 #endif
 
-#if ( _module == 3 )
-  #define  H18R1  1
-  #define  _P1pol_reversed  1
-  #define  _P2pol_normal  1
-  #define  _P3pol_normal  1
-  #define  _P4pol_normal  1
-  #define  _P5pol_normal  1
-  #define  _P6pol_normal  1
-#endif
 
-#if ( _module == 4 )
-  #define  H18R1  1
-  #define  _P1pol_reversed  1
-  #define  _P2pol_normal  1
-  #define  _P3pol_normal  1
-  #define  _P4pol_normal  1
-  #define  _P5pol_normal  1
-  #define  _P6pol_normal  1
-#endif
-
-#if ( _module == 5 )
-  #define  _H0FR7   1
-  #define  _P1pol_reversed  1
-  #define  _P2pol_normal  1
-  #define  _P3pol_normal  1
-  #define  _P4pol_normal  1
-  #define  _P5pol_normal  1
-  #define  _P6pol_normal  1
-#endif
 
 #ifdef __cplusplus
 }
