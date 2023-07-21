@@ -16,7 +16,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "BOS.h"
 #include "H0FR7_inputs.h"
-//#include "H0FR7_adc.h"
+#include "H0FR7_adc.h"
 /* Define UART variables */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -417,7 +417,7 @@ void Module_Peripheral_Init(void){
 	/* Create module special task (if needed) */
 
 	/* ADC init */
-	//MX_ADC1_Init();
+	MX_ADC1_Init();
 
 	/* Create a Mosfet task */
 	xTaskCreate(MosfetTask,(const char* ) "MosfetTask",(2*configMINIMAL_STACK_SIZE),NULL,0,&MosfetHandle);
@@ -563,7 +563,7 @@ void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 
 
 
-	//HAL_ADC_Stop(&hadc1);
+	HAL_ADC_Stop(&hadc1);
 	uint32_t tid = 0;
 
 	/* close DMA stream */
@@ -577,31 +577,31 @@ void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 }
 /*-----------------------------------------------------------*/
 /* --- ADC Calculation for the Current in H0FR7 (Mosfet)---*/
-//static float Current_Calculation(void) {
-//	ADC_ChannelConfTypeDef sConfig ={0};
-//
-//	sConfig.Channel = ADC_CHANNEL_0;
-//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-//	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
-//	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
-//	Output_on(3000);
-//	Delay_ms(1000);
-//	HAL_ADC_Start(&hadc1);
-//	HAL_ADC_PollForConversion(&hadc1,10);
-//	rawValues =HAL_ADC_GetValue(&hadc1);
-//	HAL_ADC_Stop(&hadc1);
-//	sConfig.Channel = ADC_CHANNEL_0;
-//	sConfig.Rank = ADC_RANK_NONE;
-//	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
-//	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
-//	return (rawValues * ADC_CONVERSION);
-//}
+static float Current_Calculation(void) {
+	ADC_ChannelConfTypeDef sConfig ={0};
+
+	sConfig.Channel = ADC_CHANNEL_0;
+	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
+	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
+	Output_on(3000);
+	Delay_ms(1000);
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_PollForConversion(&hadc1,10);
+	rawValues =HAL_ADC_GetValue(&hadc1);
+	HAL_ADC_Stop(&hadc1);
+	sConfig.Channel = ADC_CHANNEL_0;
+	sConfig.Rank = ADC_RANK_NONE;
+	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
+	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
+	return (rawValues * ADC_CONVERSION);
+}
 /*-----------------------------------------------------------*/
 
 /* --- Stop ADC Calculation and Switch off Mosfet ---*/
 static void mosfetStopMeasurement(void) {
 	Output_off();
-//	HAL_ADC_Stop(&hadc1);
+	HAL_ADC_Stop(&hadc1);
 }
 
 void TIM1_DeInit(void) {
@@ -621,7 +621,7 @@ static void MosfetTask(void *argument) {
 		switch (mosfetMode) {
 				case REQ_STREAM_PORT_CLI:
 					t0 = HAL_GetTick();
-					//Current = Current_Calculation();
+					Current = Current_Calculation();
 					SendMeasurementResult(mosfetMode, Current, 0, 0, NULL);
 					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
 						taskYIELD();
@@ -630,7 +630,7 @@ static void MosfetTask(void *argument) {
 
 				case REQ_STREAM_VERBOSE_PORT_CLI:
 					t0 = HAL_GetTick();
-					//Current = Current_Calculation();
+					Current = Current_Calculation();
 					SendMeasurementResult(mosfetMode, Current, 0, 0, NULL);
 					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
 						taskYIELD();
@@ -639,7 +639,7 @@ static void MosfetTask(void *argument) {
 
 				case REQ_STREAM_PORT:
 					t0 = HAL_GetTick();
-					//Current = Current_Calculation();
+					Current = Current_Calculation();
 					SendMeasurementResult(mosfetMode, Current, 0, PcPort, NULL);
 					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
 						taskYIELD();
@@ -648,7 +648,7 @@ static void MosfetTask(void *argument) {
 
 				case REQ_STREAM_BUFFER:
 					t0 = HAL_GetTick();
-				//	Current = Current_Calculation();
+					Current = Current_Calculation();
 					SendMeasurementResult(mosfetMode, Current, mosfetModule,
 							0, ptrBuffer);
 					while (HAL_GetTick() - t0 < (mosfetPeriod - 1) && !stopB) {
@@ -927,7 +927,7 @@ float Sample_current_measurement(void) {
 	if (mosfetState == REQ_TIMEOUT) {
 		return 0;
 	} else {
-	//	temp = Current_Calculation();
+		temp = Current_Calculation();
 		mosfetState = REQ_IDLE;
 		return temp;
 	}
@@ -952,7 +952,7 @@ float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period,uint3
 		/* Start the timeout timer */
 		xTimerStart(xTimerSwitch, portMAX_DELAY);
 	}
-	//temp = Current_Calculation();
+	temp = Current_Calculation();
 	SendMeasurementResult(mosfetMode, temp, Module, Port, NULL);
 	return (H0FR7_OK);
 }
@@ -978,7 +978,7 @@ float Stream_current_To_CLI(uint32_t Period, uint32_t Timeout) {
 	if (mosfetTimeout > 0) {
 		startMeasurement = START_MEASUREMENT;
 	}
-	//temp = Current_Calculation();
+	temp = Current_Calculation();
 	SendMeasurementResult(mosfetMode, temp, myID, PcPort, NULL);
 	return (H0FR7_OK);
 }
@@ -1004,7 +1004,7 @@ float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout) {
 	if (mosfetTimeout > 0) {
 		startMeasurement = START_MEASUREMENT;
 	}
-	//temp = Current_Calculation();
+	temp = Current_Calculation();
 	SendMeasurementResult(mosfetMode, temp, myID, PcPort, NULL);
 	return (H0FR7_OK);
 }
@@ -1026,7 +1026,7 @@ float Stream_current_To_Buffer(float *Buffer, uint32_t Period, uint32_t Timeout)
 		/* Start the timeout timer */
 		xTimerStart( xTimerSwitch, portMAX_DELAY );
 	}
-	//temp = Current_Calculation();
+	temp = Current_Calculation();
 	SendMeasurementResult(mosfetMode, temp, 0, 0, Buffer);
 	return (H0FR7_OK);
 }
@@ -1258,7 +1258,7 @@ portBASE_TYPE mosfetSampleCommand(int8_t *pcWriteBuffer,
 	configASSERT(pcWriteBuffer);
 
 	/* Obtain the value. */
-	//Current = Current_Calculation();
+	Current = Current_Calculation();
 	mosfetCurrent = Current;
 
 	/* Respond to the command */

@@ -134,6 +134,16 @@
 			<locationURI>PARENT-1-PROJECT_LOC/H0FR7/H0FR7_MemoryMap.h</locationURI>
 		</link>
 		<link>
+			<name>H0FR7/H0FR7_adc.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/H0FR7/H0FR7_adc.c</locationURI>
+		</link>
+		<link>
+			<name>H0FR7/H0FR7_adc.h</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/H0FR7/H0FR7_adc.h</locationURI>
+		</link>
+		<link>
 			<name>H0FR7/H0FR7_dma.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/H0FR7/H0FR7_dma.c</locationURI>
