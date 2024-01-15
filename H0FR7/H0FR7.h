@@ -53,14 +53,19 @@
 
 
 /* Port-UART mapping */
-#define P1uart &huart4
-#define P2uart &huart2
-#define P3uart &huart6
-#define P4uart &huart3
-#define P5uart &huart4
-
+#define P1uart &huart3
+#define P2uart &huart1
+#define P3uart &huart5
+#define P4uart &huart6
+#define P5uart &huart2
 
 /* Port Definitions */
+#define	USART1_TX_PIN		GPIO_PIN_10
+#define	USART1_RX_PIN		GPIO_PIN_9
+#define	USART1_TX_PORT		GPIOA
+#define	USART1_RX_PORT		GPIOA
+#define	USART1_AF			GPIO_AF1_USART1
+
 #define	USART2_TX_PIN		GPIO_PIN_2
 #define	USART2_RX_PIN		GPIO_PIN_3
 #define	USART2_TX_PORT		GPIOA
@@ -85,16 +90,15 @@
 #define	USART5_RX_PORT		GPIOD
 #define	USART5_AF			GPIO_AF3_USART5
 
-#define	USART6_TX_PIN		GPIO_PIN_4
-#define	USART6_RX_PIN		GPIO_PIN_5
-#define	USART6_TX_PORT		GPIOA
-#define	USART6_RX_PORT		GPIOA
-#define	USART6_AF			GPIO_AF3_USART6
-
+#define	USART6_TX_PIN		GPIO_PIN_8
+#define	USART6_RX_PIN		GPIO_PIN_9
+#define	USART6_TX_PORT		GPIOB
+#define	USART6_RX_PORT		GPIOB
+#define	USART6_AF			GPIO_AF8_USART6
 
 
 #define	_Switch_PIN						GPIO_PIN_6
-#define	_Switch_PORT						GPIOB
+#define	_Switch_PORT					GPIOB
 #define _Switch_TIM_CH					TIM_CHANNEL_3
 #define _Switch_GPIO_CLK()				__GPIOB_CLK_ENABLE();
 #define PWM_TIMER_CLOCK					16000000
