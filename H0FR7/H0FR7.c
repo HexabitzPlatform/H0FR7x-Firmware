@@ -405,6 +405,7 @@ void SetupPortForRemoteBootloaderUpdate(uint8_t port){
 void Module_Peripheral_Init(void){
 
 	/* Array ports */
+	MX_USART1_UART_Init();
 	MX_USART2_UART_Init();
 	MX_USART3_UART_Init();
 	MX_USART4_UART_Init();
@@ -503,15 +504,15 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
  */
 uint8_t GetPort(UART_HandleTypeDef *huart){
 
-	if(huart->Instance == USART4)
+	if(huart->Instance == USART3)
 		return P1;
-	else if(huart->Instance == USART2)
+	else if(huart->Instance == USART1)
 		return P2;
-	else if(huart->Instance == USART6)
-		return P3;
-	else if(huart->Instance == USART3)
-		return P4;
 	else if(huart->Instance == USART5)
+		return P3;
+	else if(huart->Instance == USART6)
+		return P4;
+	else if(huart->Instance == USART2)
 		return P5;
 
 	return 0;
