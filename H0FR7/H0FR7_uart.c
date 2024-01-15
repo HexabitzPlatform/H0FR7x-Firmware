@@ -20,6 +20,7 @@ uint16_t arrayPortsDir[__N ];
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart3_rx;
+DMA_HandleTypeDef hdma_usart4_rx;
 DMA_HandleTypeDef hdma_usart5_rx;
 DMA_HandleTypeDef hdma_usart6_rx;
 
@@ -40,7 +41,7 @@ void MX_USART1_UART_Init(void){
 	HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8);
 	HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8);
 	HAL_UARTEx_DisableFifoMode(&huart1);
-#if _P4pol_reversed
+#if _P2pol_reversed
 		huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart1.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart1);
@@ -66,7 +67,7 @@ void MX_USART2_UART_Init(void){
 	 HAL_UARTEx_SetTxFifoThreshold(&huart2, UART_TXFIFO_THRESHOLD_1_8);
      HAL_UARTEx_SetRxFifoThreshold(&huart2, UART_RXFIFO_THRESHOLD_1_8);
 	 HAL_UARTEx_DisableFifoMode(&huart2);
-#if _P2pol_reversed
+#if _P5pol_reversed
 		huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart2.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 		HAL_UART_Init(&huart2);
@@ -92,7 +93,7 @@ void MX_USART3_UART_Init(void){
 	  HAL_UARTEx_SetTxFifoThreshold(&huart3, UART_TXFIFO_THRESHOLD_1_8);
 	  HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_1_8);
 	  HAL_UARTEx_DisableFifoMode(&huart3);
-#if _P4pol_reversed
+#if _P1pol_reversed
 		huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart3.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart3);
@@ -138,7 +139,7 @@ void MX_USART5_UART_Init(void){
 	  huart5.Init.ClockPrescaler = UART_PRESCALER_DIV1;
 	  huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 	  HAL_UART_Init(&huart5);
-#if _P5pol_reversed
+#if _P3pol_reversed
 		huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart5.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart5);
@@ -161,7 +162,7 @@ void MX_USART6_UART_Init(void){
 	  huart6.Init.ClockPrescaler = UART_PRESCALER_DIV1;
 	  huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 	  HAL_UART_Init(&huart6);
-#if _P3pol_reversed	
+#if _P4pol_reversed
 		huart6.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_SWAP_INIT;
 		huart6.AdvancedInit.Swap = UART_ADVFEATURE_SWAP_ENABLE;
 	  HAL_UART_Init(&huart6);
@@ -214,7 +215,7 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart){
 	    hdma_usart1_rx.Init.Priority = DMA_PRIORITY_LOW;
 	    HAL_DMA_Init(&hdma_usart1_rx);
 
-	    __HAL_LINKDMA(uartHandle,hdmarx,hdma_usart1_rx);
+	    __HAL_LINKDMA(huart,hdmarx,hdma_usart1_rx);
 
 		/* Peripheral interrupt init*/
 		HAL_NVIC_SetPriority(USART1_IRQn,1,0);
