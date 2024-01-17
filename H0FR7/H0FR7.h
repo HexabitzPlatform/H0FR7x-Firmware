@@ -97,10 +97,10 @@
 #define	USART6_AF			GPIO_AF8_USART6
 
 
-#define	_Switch_PIN						GPIO_PIN_6
-#define	_Switch_PORT					GPIOB
-#define _Switch_TIM_CH					TIM_CHANNEL_3
-#define _Switch_GPIO_CLK()				__GPIOB_CLK_ENABLE();
+#define	_Switch_PIN						GPIO_PIN_1
+#define	_Switch_PORT					GPIOD
+#define _Switch_TIM_CH					TIM_CHANNEL_1
+#define _Switch_GPIO_CLK()				__GPIOD_CLK_ENABLE();
 #define PWM_TIMER_CLOCK					16000000
 #define Switch_PWM_DEF_FREQ				10000
 #define Switch_PWM_DEF_PERIOD			((float) (1/Switch_PWM_FREQ) )
@@ -189,7 +189,7 @@ extern void ExecuteMonitor(void);
 
 extern Switch_state_t Switch_State;
 extern uint8_t SwitchindMode;
-extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim17;
 
 void initialValue(void);
 

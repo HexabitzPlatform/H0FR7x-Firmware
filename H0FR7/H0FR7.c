@@ -44,9 +44,10 @@ extern uint8_t numOfRecordedSnippets;
 
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim1;
-void MX_TIM1_Init(void);
+TIM_HandleTypeDef htim17;
+void MX_TIM17_Init(void);
 void Switch_Init(void);
+
 extern ADC_HandleTypeDef hadc1;
 TimerHandle_t xTimerSwitch = NULL;
 TaskHandle_t MosfetHandle = NULL;
@@ -65,8 +66,8 @@ float mosfetCurrent __attribute__((section(".mySection")));
 void ExecuteMonitor(void);
 void SwitchTimerCallback(TimerHandle_t xTimerSwitch);
 Module_Status Set_Switch_PWM(uint32_t freq,float dutycycle);
-void TIM1_Init(void);
-void TIM1_DeInit(void);
+//void TIM1_Init(void);
+//void TIM1_DeInit(void);
 static float Current_Calculation(void);
 static void MosfetTask(void *argument);
 static Module_Status SendMeasurementResult(uint8_t request,float value,uint8_t module,uint8_t port,float *buffer);
@@ -411,7 +412,7 @@ void Module_Peripheral_Init(void){
 	MX_USART4_UART_Init();
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
-	//MX_TIM1_Init();
+	MX_TIM17_Init();
 
 	 //Circulating DMA Channels ON All Module
 	 for(int i=1;i<=NumOfPorts;i++)
@@ -620,8 +621,8 @@ static void mosfetStopMeasurement(void) {
 
 void TIM1_DeInit(void) {
 	HAL_NVIC_DisableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);
-	HAL_TIM_Base_DeInit(&htim1);
-	HAL_TIM_PWM_DeInit(&htim1);
+	HAL_TIM_Base_DeInit(&htim17);
+	HAL_TIM_PWM_DeInit(&htim17);
 	__TIM1_CLK_DISABLE();
 }
 /*-----------------------------------------------------------*/
@@ -816,14 +817,14 @@ static void CheckForEnterKey(void) {
 Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
 	Module_Status result = H0FR7_OK;
 	uint32_t ARR = 100;
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+//	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 
 
 	/* PWM period */
-	htim1.Instance->ARR = ARR - 1;
-
-	/* PWM duty cycle */
-	htim1.Instance->CCR3 = ((float) dutycycle / 100.0f) * ARR;
+//	htim1.Instance->ARR = ARR - 1;
+//
+//	/* PWM duty cycle */
+//	htim1.Instance->CCR3 = ((float) dutycycle / 100.0f) * ARR;
 
 	return result;
 }
@@ -870,8 +871,8 @@ Module_Status Output_off(void) {
 	Module_Status result = H0FR7_OK;
 
 	/* Turn off PWM and re-initialize GPIO if needed */
-		HAL_TIM_PWM_Stop(&htim1, _Switch_TIM_CH);
-		htim1.Instance->CCR3=0;
+//		HAL_TIM_PWM_Stop(&htim1, _Switch_TIM_CH);
+//		htim1.Instance->CCR3=0;
 
 
 	/* Indicator LED */
@@ -910,8 +911,8 @@ Module_Status Output_PWM(float dutyCycle) {
 
 	/* Start the PWM */
 
-	MX_TIM1_Init();
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+//	MX_TIM1_Init();
+//	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 
 	result = Set_Switch_PWM(1600000, dutyCycle);
 
