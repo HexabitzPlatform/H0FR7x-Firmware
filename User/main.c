@@ -30,12 +30,13 @@ int main(void){
 
 /* User Task */
 void UserTask(void *argument){
-	uint32_t a =HAL_RCC_GetSysClockFreq();
-	HAL_TIM_Base_Start(&htim17);
-	HAL_TIM_PWM_Start(&htim17,TIM_CHANNEL_1);
+//	HAL_TIM_Base_Start(&htim17);
+//	HAL_TIM_PWM_Start(&htim17,TIM_CHANNEL_1);
 
-	TIM17->CCR1 = 800;
+//	TIM17->CCR1 = 800;
 
+//	SetSwitchPWM(100);
+	OutputOn(1000);
 	while(1){
 
 

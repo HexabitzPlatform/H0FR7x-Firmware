@@ -25,10 +25,9 @@
 #include "H0FR7_dma.h"
 #include "H0FR7_inputs.h"
 #include "H0FR7_eeprom.h"
+
 /* Exported definitions -------------------------------------------------------*/
-
 #define	modulePN		_H0FR7
-
 
 /* Port-related definitions */
 #define	NumOfPorts			5
@@ -97,13 +96,15 @@
 #define	USART6_AF			GPIO_AF8_USART6
 
 
-#define	_Switch_PIN						GPIO_PIN_1
-#define	_Switch_PORT					GPIOD
-#define _Switch_TIM_CH					TIM_CHANNEL_1
-#define _Switch_GPIO_CLK()				__GPIOD_CLK_ENABLE();
-#define PWM_TIMER_CLOCK					16000000
-#define Switch_PWM_DEF_FREQ				10000
-#define Switch_PWM_DEF_PERIOD			((float) (1/Switch_PWM_FREQ) )
+/* H0FR7x Definitions */
+#define	SWITCHING_PIN			 GPIO_PIN_1
+#define	SWITCHING_PORT			 GPIOD
+#define SWITCHING_TIMER_HANDLE   &htim17
+#define SWITCHING_TIM_CH		 TIM_CHANNEL_1
+#define SWITCHING_GPIO_CLK()	 __GPIOD_CLK_ENABLE();
+#define PWM_TIMER_CLOCK_ARR		 1599   /* Fpwm_clk = 16 MHZ / ( 1599 + 1 ) * ( 0 + 1) = 10 KHZ */
+//#define Switch_PWM_DEF_FREQ			10000
+//#define Switch_PWM_DEF_PERIOD		((float) (1/Switch_PWM_FREQ) )
 
 #define ADC_CONVERSION 				  0.0058
 
@@ -139,13 +140,13 @@
 
 /* Module-specific Definitions */
 
-#define NUM_MODULE_PARAMS						7
+#define NUM_MODULE_PARAMS			  7
 #define STOP_MEASUREMENT_RANGING      0
 #define START_MEASUREMENT_RANGING     1
-/* Module EEPROM Variables */
 
-// Module Addressing Space 500 - 599
-#define _EE_MODULE							500		
+/* Module EEPROM Variables */
+/* Module Addressing Space 500 - 599 */
+#define _EE_MODULE					  500
 
 /* Module_Status Type Definition */
 typedef enum {
@@ -188,8 +189,8 @@ extern void SystemClock_Config(void);
 extern void ExecuteMonitor(void);
 
 extern Switch_state_t Switch_State;
-extern uint8_t SwitchindMode;
-extern TIM_HandleTypeDef htim17;
+//extern uint8_t SwitchindMode;
+//extern TIM_HandleTypeDef htim17;
 
 void initialValue(void);
 
@@ -197,10 +198,11 @@ void initialValue(void);
  |								  APIs							          |  																 	|
 /* -----------------------------------------------------------------------
  */
-extern Module_Status Output_on(uint32_t timeout);
-extern Module_Status Output_off(void);
-extern Module_Status Output_toggle(void);
-extern Module_Status Output_PWM(float dutyCycle);
+Module_Status SetSwitchPWM(uint8_t dutycycle);
+extern Module_Status OutputOn(uint32_t timeout);
+extern Module_Status OutputOff(void);
+extern Module_Status OutputToggle(void);
+extern Module_Status OutputPWM(float dutyCycle);
 extern float Sample_current_measurement(void);
 extern float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period, uint32_t Timeout);
 extern float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout);

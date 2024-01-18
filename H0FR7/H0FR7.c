@@ -17,6 +17,7 @@
 #include "BOS.h"
 #include "H0FR7_inputs.h"
 #include "H0FR7_adc.h"
+
 /* Define UART variables */
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
@@ -40,13 +41,9 @@ module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR7_Current, .paramF
 extern FLASH_ProcessTypeDef pFlash;
 extern uint8_t numOfRecordedSnippets;
 
-
-
-
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim17;
 void MX_TIM17_Init(void);
-void Switch_Init(void);
 
 extern ADC_HandleTypeDef hadc1;
 TimerHandle_t xTimerSwitch = NULL;
@@ -65,14 +62,17 @@ float mosfetCurrent __attribute__((section(".mySection")));
 /* Private function prototypes -----------------------------------------------*/
 void ExecuteMonitor(void);
 void SwitchTimerCallback(TimerHandle_t xTimerSwitch);
-Module_Status Set_Switch_PWM(uint32_t freq,float dutycycle);
-//void TIM1_Init(void);
-//void TIM1_DeInit(void);
+
+
 static float Current_Calculation(void);
 static void MosfetTask(void *argument);
 static Module_Status SendMeasurementResult(uint8_t request,float value,uint8_t module,uint8_t port,float *buffer);
 static void CheckForEnterKey(void);
 static Module_Status GetStopCompletedStatus(uint32_t *pStopStatus);
+
+
+
+
 
 /* Create CLI commands --------------------------------------------------------*/
 portBASE_TYPE onCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,const int8_t *pcCommandString);
@@ -86,16 +86,16 @@ portBASE_TYPE mosfetStopCommand(int8_t *pcWriteBuffer,size_t xWriteBufferLen,con
 /* CLI command structure : on */
 const CLI_Command_Definition_t onCommandDefinition =
 		{ (const int8_t*) "on", /* The command string to type. */
-				(const int8_t*) "on:\r\n Turn solid state Switch on with a timeout (ms) (1st par.). Use 'inf' to turn on constantly\r\n\r\n",
-				onCommand, /* The function to run. */
-				1 /* One parameter is expected. */
-		};
+		(const int8_t*) "on:\r\n Turn solid state Switch on with a timeout (ms) (1st par.). Use 'inf' to turn on constantly\r\n\r\n",
+		onCommand, /* The function to run. */
+	    1 /* One parameter is expected. */
+};
 /*-----------------------------------------------------------*/
 /* CLI command structure : off */
 const CLI_Command_Definition_t offCommandDefinition =
-	{ (const int8_t*) "off", /* The command string to type. */
-(const int8_t*) "off:\r\n Turn solid state Switch off\r\n\r\n", offCommand, /* The function to run. */
-0 /* No parameters are expected. */
+	    { (const int8_t*) "off", /* The command string to type. */
+        (const int8_t*) "off:\r\n Turn solid state Switch off\r\n\r\n", offCommand, /* The function to run. */
+        0 /* No parameters are expected. */
 };
 /*-----------------------------------------------------------*/
 /* CLI command structure : toggle */
@@ -109,35 +109,35 @@ const CLI_Command_Definition_t toggleCommandDefinition = {
 /* CLI command structure : ledMode */
 const CLI_Command_Definition_t ledModeCommandDefinition =
 		{ (const int8_t*) "ledmode", /* The command string to type. */
-				(const int8_t*) "ledMode:\r\n Set solid state Switch indicator LED mode ('on' or 'off') (1st par.)\r\n\r\n",
-				ledModeCommand, /* The function to run. */
-				1 /* One parameter is expected. */
-		};
+		(const int8_t*) "ledMode:\r\n Set solid state Switch indicator LED mode ('on' or 'off') (1st par.)\r\n\r\n",
+		ledModeCommand, /* The function to run. */
+		1 /* One parameter is expected. */
+};
 /*-----------------------------------------------------------*/
 /* CLI command structure : pwm */
 const CLI_Command_Definition_t pwmCommandDefinition =
 		{ (const int8_t*) "pwm", /* The command string to type. */
-				(const int8_t*) "pwm:\r\n Control the solid state Switch with pulse-width modulation (PWM) signal with a percentage duty cycle (0-100) (1st par.)\r\n\r\n",
-				pwmCommand, /* The function to run. */
-				1 /* One parameter is expected. */
-		};
-
+		(const int8_t*) "pwm:\r\n Control the solid state Switch with pulse-width modulation (PWM) signal with a percentage duty cycle (0-100) (1st par.)\r\n\r\n",
+		pwmCommand, /* The function to run. */
+		1 /* One parameter is expected. */
+};
+/*-----------------------------------------------------------*/
 /* CLI command structure : sample */
 const CLI_Command_Definition_t mosfetSampleCommandDefinition =
 		{ (const int8_t*) "sample", /* The command string to type. */
-				(const int8_t*) "sample:\r\n Sample command to get the Current consumption in (Amp)\r\n\r\n",
-				mosfetSampleCommand, /* The function to run. */
-				0 /* Zero parameter is expected. */
-		};
+		(const int8_t*) "sample:\r\n Sample command to get the Current consumption in (Amp)\r\n\r\n",
+		mosfetSampleCommand, /* The function to run. */
+		0 /* Zero parameter is expected. */
+};
 /*-----------------------------------------------------------*/
 /* CLI command structure : stream */
 const CLI_Command_Definition_t mosfetStreamCommandDefinition =
 		{ (const int8_t*) "stream", /* The command string to type. */
-				(const int8_t*) "stream:\r\nStream measurements to the CLI with this syntax:\n\r\tstream period(in ms) timeout(in ms)\n\r\tstream period timeout -v\t(for verbose output)\
+		(const int8_t*) "stream:\r\nStream measurements to the CLI with this syntax:\n\r\tstream period(in ms) timeout(in ms)\n\r\tstream period timeout -v\t(for verbose output)\
 			\n\rOr to a specific port in a specific module with this syntax:\r\n\tstream period timeout port(p1..px) module\n\rOr to internal buffer with this syntax:\r\n\tstream period timeout buffer.\t(Buffer here is a literal value and can be accessed in the CLI using module parameter: current)\r\n\r\n",
-				mosfetStreamCommand, /* The function to run. */
-				-1 /* Multiple parameters are expected. */
-		};
+		mosfetStreamCommand, /* The function to run. */
+		-1 /* Multiple parameters are expected. */
+};
 /*-----------------------------------------------------------*/
 /* CLI command structure : stop */
 const CLI_Command_Definition_t mosfetStopCommandDefinition = {
@@ -146,12 +146,10 @@ const CLI_Command_Definition_t mosfetStopCommandDefinition = {
 		mosfetStopCommand, /* The function to run. */
 		0 /* No parameters are expected. */
 };
-/*-----------------------------------------------------------*/
-
 
 /* -----------------------------------------------------------------------
- |												 Private Functions	 														|
- -----------------------------------------------------------------------
+ |								 Private Functions	 					  |
+ -------------------------------------------------------------------------
  */
 
 /**
@@ -216,8 +214,6 @@ void SystemClock_Config(void){
 }
 
 /*-----------------------------------------------------------*/
-
-
 /* --- Save array topology and Command Snippets in Flash RO ---
  */
 uint8_t SaveToRO(void){
@@ -442,6 +438,7 @@ void Module_Peripheral_Init(void){
 
 }
 
+/*-----------------------------------------------------------*/
 void initialValue(void)
 {
 	mosfetCurrent=0;
@@ -459,21 +456,21 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 			switch (code) {
 			case CODE_H0FR7_ON:
 				temp32 = cMessage[port - 1][shift] + ((uint32_t) cMessage[port - 1][1 + shift] << 8)+ ((uint32_t) cMessage[port - 1][2 + shift] << 16)+ ((uint32_t)cMessage[port - 1][3 + shift]<< 24);
-				Output_on(temp32);
+				OutputOn(temp32);
 				break;
 
 			case CODE_H0FR7_OFF:
-				Output_off();
+				OutputOff();
 				break;
 
 			case CODE_H0FR7_TOGGLE:
-				Output_toggle();
+				OutputToggle();
 				break;
 
 			case CODE_H0FR7_PWM:
 				tempFloat = (float)cMessage[port - 1][shift];
 		//		tempFloat = (float) (((uint64_t) cMessage[port - 1][shift] )+ ((uint64_t) cMessage[port - 1][1 + shift] << 8)+ ((uint64_t) cMessage[port - 1][2 + shift] << 16)+ ((uint64_t) cMessage[port - 1][3 + shift] <<24));
-				Output_PWM(tempFloat);
+				OutputPWM(tempFloat);
 				break;
 			case CODE_H0FR7_SAMPLE_PORT:
 				Current=Sample_current_measurement();
@@ -501,6 +498,7 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 	return result;
 }
 
+/*-----------------------------------------------------------*/
 /* --- Get the port for a given UART.
  */
 uint8_t GetPort(UART_HandleTypeDef *huart){
@@ -518,14 +516,8 @@ uint8_t GetPort(UART_HandleTypeDef *huart){
 
 	return 0;
 }
+
 /*------------------------------------------------------------*/
-
-
-/*-----------------------------------------------------------*/
-
-/*-----------------------------------------------------------*/
-
-
 /* --- Register this module CLI Commands
  */
 void RegisterModuleCLICommands(void){
@@ -542,41 +534,10 @@ void RegisterModuleCLICommands(void){
 }
 
 /*-----------------------------------------------------------*/
-
-
-/* Module special task function (if needed) */
-//void Module_Special_Task(void *argument){
-//
-//	/* Infinite loop */
-//	uint8_t cases; // Test variable.
-//	for(;;){
-//		/*  */
-//		switch(cases){
-//
-//
-//			default:
-//				osDelay(10);
-//				break;
-//		}
-//
-//		taskYIELD();
-//	}
-//
-//}
-
-
-/*-----------------------------------------------------------*/
-
-
-
-
-/*-----------------------------------------------------------*/
 /* --- Switch timer callback ---*/
 void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 
-	Output_off();
-
-
+	OutputOff();
 
 	HAL_ADC_Stop(&hadc1);
 	uint32_t tid = 0;
@@ -587,9 +548,8 @@ void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 		startMeasurement = STOP_MEASUREMENT;
 		mosfetMode = REQ_IDLE;		// Stop the streaming task
 	}
-
-
 }
+
 /*-----------------------------------------------------------*/
 /* --- ADC Calculation for the Current in H0FR7 (Mosfet)---*/
 static float Current_Calculation(void) {
@@ -599,7 +559,7 @@ static float Current_Calculation(void) {
 	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
 	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
 	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
-	Output_on(3000);
+	OutputOn(3000);
 	Delay_ms(1000);
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1,10);
@@ -611,22 +571,15 @@ static float Current_Calculation(void) {
 	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
 	return (rawValues * ADC_CONVERSION);
 }
-/*-----------------------------------------------------------*/
 
+/*-----------------------------------------------------------*/
 /* --- Stop ADC Calculation and Switch off Mosfet ---*/
 static void mosfetStopMeasurement(void) {
-	Output_off();
+	OutputOff();
 	HAL_ADC_Stop(&hadc1);
 }
 
-void TIM1_DeInit(void) {
-	HAL_NVIC_DisableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);
-	HAL_TIM_Base_DeInit(&htim17);
-	HAL_TIM_PWM_DeInit(&htim17);
-	__TIM1_CLK_DISABLE();
-}
 /*-----------------------------------------------------------*/
-
 
 /* --- Definition of Mosfet Prime Task ---*/
 static void MosfetTask(void *argument) {
@@ -813,20 +766,17 @@ static void CheckForEnterKey(void) {
 	}
 }
 /*-----------------------------------------------------------*/
-/* --- Set Switch PWM frequency and dutycycle ---*/
-Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
+/* Set Switch dutycycle */
+Module_Status SetSwitchPWM(uint8_t dutycycle) {
 	Module_Status result = H0FR7_OK;
-	uint32_t ARR = 100;
-//	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 
-
-	/* PWM period */
-//	htim1.Instance->ARR = ARR - 1;
-//
-//	/* PWM duty cycle */
-//	htim1.Instance->CCR3 = ((float) dutycycle / 100.0f) * ARR;
-
-	return result;
+	if(dutycycle >= 0 && dutycycle <= 100) {
+	HAL_TIM_PWM_Start(SWITCHING_TIMER_HANDLE, SWITCHING_TIM_CH);
+	TIM17->CCR1 = (PWM_TIMER_CLOCK_ARR * dutycycle) / 100;
+	return result = H0FR7_OK;
+	}
+	else
+	 return result = H0FR7_ERR_WrongParams;
 }
 
 /* -----------------------------------------------------------------------
@@ -835,14 +785,10 @@ Module_Status Set_Switch_PWM(uint32_t freq, float dutycycle) {
  */
 /* --- Turn on the solid state Switch ---
  */
-Module_Status Output_on(uint32_t timeout) {
+Module_Status OutputOn(uint32_t timeout) {
 	Module_Status result = H0FR7_OK;
 
-
-	Set_Switch_PWM(1600000, 100);
-
-
-
+	SetSwitchPWM(100);
 
 	/* Indicator LED */
 	if (SwitchindMode)
@@ -867,13 +813,11 @@ Module_Status Output_on(uint32_t timeout) {
 /*-----------------------------------------------------------*/
 /* --- Turn off the solid state Switch ---
  */
-Module_Status Output_off(void) {
+Module_Status OutputOff(void) {
 	Module_Status result = H0FR7_OK;
 
 	/* Turn off PWM and re-initialize GPIO if needed */
-//		HAL_TIM_PWM_Stop(&htim1, _Switch_TIM_CH);
-//		htim1.Instance->CCR3=0;
-
+	SetSwitchPWM(0);
 
 	/* Indicator LED */
 	if (SwitchindMode)
@@ -887,23 +831,23 @@ Module_Status Output_off(void) {
 /*-----------------------------------------------------------*/
 /* --- Toggle the solid state Switch ---
  */
-Module_Status Output_toggle(void) {
+Module_Status OutputToggle(void) {
 	Module_Status result = H0FR7_OK;
 
 	if (Switch_state) {
-		result = Output_off();
+		result = OutputOff();
 	} else {
 		if (Switch_Oldstate == STATE_ON)
-			result = Output_on(portMAX_DELAY);
+			result = OutputOn(portMAX_DELAY);
 		else if (Switch_Oldstate == STATE_PWM)
-			result = Output_PWM(Switch_OldDC);
+			result = OutputPWM(Switch_OldDC);
 	}
 
 	return result;
 }
 
 /*-----------------------------------------------------------*/
-Module_Status Output_PWM(float dutyCycle) {
+Module_Status OutputPWM(float dutyCycle) {
 	Module_Status result = H0FR7_OK;
 
 	if (dutyCycle < 0 || dutyCycle > 100)
@@ -914,7 +858,7 @@ Module_Status Output_PWM(float dutyCycle) {
 //	MX_TIM1_Init();
 //	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 
-	result = Set_Switch_PWM(1600000, dutyCycle);
+//	result = Set_Switch_PWM(1600000, dutyCycle);
 
 
 	if (result == H0FR7_OK) {
@@ -1058,10 +1002,9 @@ Module_Status Stop_current_measurement(void) {
 
 	mosfetStopMeasurement();
 
-
 	return state;
 }
-/*-----------------------------------------------------------*/
+
 /* -----------------------------------------------------------------------
  |								Commands							      |
    -----------------------------------------------------------------------
@@ -1096,7 +1039,7 @@ portBASE_TYPE onCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	else
 		timeout = (uint32_t) atol((char*) pcParameterString1);
 
-	result = Output_on(timeout);
+	result = OutputOn(timeout);
 
 	/* Respond to the command */
 	if (result == H0FR7_OK) {
@@ -1128,7 +1071,7 @@ portBASE_TYPE offCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
 
-	result = Output_off();
+	result = OutputOff();
 
 	/* Respond to the command */
 	if (result == H0FR7_OK) {
@@ -1157,7 +1100,7 @@ portBASE_TYPE toggleCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
 
-	result = Output_toggle();
+	result = OutputToggle();
 
 	/* Respond to the command */
 	if (result == H0FR7_OK) {
@@ -1245,7 +1188,7 @@ portBASE_TYPE pwmCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,
 	if (dutycycle < 0.0f || dutycycle > 100.0f)
 		result = H0FR7_ERR_Wrong_Value;
 	else
-		result = Output_PWM(dutycycle);
+		result = OutputPWM(dutycycle);
 
 	/* Respond to the command */
 	if (result == H0FR7_OK) {
