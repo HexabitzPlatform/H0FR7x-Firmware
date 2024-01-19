@@ -22,7 +22,7 @@
 //GPIO_InitTypeDef GPIO_InitStruct = {0};
 TIM_HandleTypeDef htim16; /* micro-second delay counter */
 TIM_HandleTypeDef htim15; /* milli-second delay counter */
-extern TIM_HandleTypeDef htim17; /* MOSFET Gate Driver Timer */
+TIM_HandleTypeDef htim17; /* MOSFET Gate Driver Timer */
 
 
 extern void MX_TIM17_Init(void);

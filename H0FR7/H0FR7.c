@@ -42,36 +42,35 @@ extern FLASH_ProcessTypeDef pFlash;
 extern uint8_t numOfRecordedSnippets;
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim17;
-void MX_TIM17_Init(void);
-
 extern ADC_HandleTypeDef hadc1;
+extern TIM_HandleTypeDef htim17;
+
+
+/* FreeRTOS Task & Timer */
 TimerHandle_t xTimerSwitch = NULL;
 TaskHandle_t MosfetHandle = NULL;
-Switch_state_t Switch_state = STATE_OFF, Switch_Oldstate = STATE_ON;
+ Switch_state_t Switch_state;
 uint8_t SwitchindMode = 0;
 uint8_t stream_index = 0;
 uint8_t mosfetPort, mosfetModule, mosfetState, mosfetMode;
 uint32_t rawValues, mosfetPeriod, mosfetTimeout, t0, temp32;
-float tempFloat, Switch_OldDC;
+float tempFloat;
 float mosfetBuffer = 0;
 float Current = 0.0f;
 float *ptrBuffer = &mosfetBuffer;
 bool stopB = 0;
 float mosfetCurrent __attribute__((section(".mySection")));
+static float Current_Calculation(void);
+
 /* Private function prototypes -----------------------------------------------*/
 void ExecuteMonitor(void);
 void SwitchTimerCallback(TimerHandle_t xTimerSwitch);
+void MX_TIM17_Init(void);
 
-
-static float Current_Calculation(void);
 static void MosfetTask(void *argument);
 static Module_Status SendMeasurementResult(uint8_t request,float value,uint8_t module,uint8_t port,float *buffer);
-static void CheckForEnterKey(void);
 static Module_Status GetStopCompletedStatus(uint32_t *pStopStatus);
-
-
-
+static void CheckForEnterKey(void);
 
 
 /* Create CLI commands --------------------------------------------------------*/
@@ -408,7 +407,10 @@ void Module_Peripheral_Init(void){
 	MX_USART4_UART_Init();
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
+	/* Timer init */
 	MX_TIM17_Init();
+	/* ADC init */
+	MX_ADC1_Init();
 
 	 //Circulating DMA Channels ON All Module
 	 for(int i=1;i<=NumOfPorts;i++)
@@ -429,12 +431,11 @@ void Module_Peripheral_Init(void){
 
 	/* Create module special task (if needed) */
 
-	/* ADC init */
-	MX_ADC1_Init();
-
 	/* Create a Mosfet task */
 	xTaskCreate(MosfetTask,(const char* ) "MosfetTask",(2*configMINIMAL_STACK_SIZE),NULL,0,&MosfetHandle);
 
+	/* start software timer which will create event timeout */
+	xTimerSwitch = xTimerCreate( "mosfetTimer", pdMS_TO_TICKS(FREERTOS_TIMER_DEFAULT), pdFALSE, ( void * ) TIMERID_TIMEOUT_MEASUREMENT, SwitchTimerCallback );
 
 }
 
@@ -788,14 +789,15 @@ Module_Status SetSwitchPWM(uint8_t dutycycle) {
 Module_Status OutputOn(uint32_t timeout) {
 	Module_Status result = H0FR7_OK;
 
-	SetSwitchPWM(100);
+	/* turn output on */
+	SetSwitchPWM(DUTY_CYCLE_100_ON);
 
 	/* Indicator LED */
 	if (SwitchindMode)
 		IND_ON();
 
 	/* Timeout */
-	if (timeout != portMAX_DELAY) {
+	if (timeout <= portMAX_DELAY) {
 		/* Stop the timer if it's already running */
 		if (xTimerIsTimerActive(xTimerSwitch))
 			xTimerStop(xTimerSwitch, 100);
@@ -805,7 +807,7 @@ Module_Status OutputOn(uint32_t timeout) {
 
 	/* Update Switch state */
 	Switch_state = STATE_ON;
-	Switch_Oldstate = Switch_state;
+//	Switch_Oldstate = Switch_state;
 
 	return result;
 }
@@ -817,7 +819,7 @@ Module_Status OutputOff(void) {
 	Module_Status result = H0FR7_OK;
 
 	/* Turn off PWM and re-initialize GPIO if needed */
-	SetSwitchPWM(0);
+	SetSwitchPWM(DUTY_CYCLE_0_OFF);
 
 	/* Indicator LED */
 	if (SwitchindMode)
@@ -834,43 +836,33 @@ Module_Status OutputOff(void) {
 Module_Status OutputToggle(void) {
 	Module_Status result = H0FR7_OK;
 
-	if (Switch_state) {
-		result = OutputOff();
-	} else {
-		if (Switch_Oldstate == STATE_ON)
-			result = OutputOn(portMAX_DELAY);
-		else if (Switch_Oldstate == STATE_PWM)
-			result = OutputPWM(Switch_OldDC);
-	}
+	if (Switch_state){
+		OutputOff();
+		result = STATE_OFF;}
+	else{
+		OutputOn(portMAX_DELAY);
+		result = STATE_ON;}
 
 	return result;
 }
 
 /*-----------------------------------------------------------*/
-Module_Status OutputPWM(float dutyCycle) {
+Module_Status OutputPWM(uint32_t dutyCycle) {
 	Module_Status result = H0FR7_OK;
 
 	if (dutyCycle < 0 || dutyCycle > 100)
 		return H0FR7_ERR_WrongParams;
 
 	/* Start the PWM */
+	SetSwitchPWM(dutyCycle);
 
-//	MX_TIM1_Init();
-//	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+	/* Update Switch state */
+	Switch_state =STATE_ON;
+//	Switch_Oldstate = Switch_state;
 
-//	result = Set_Switch_PWM(1600000, dutyCycle);
-
-
-	if (result == H0FR7_OK) {
-			Switch_OldDC = dutyCycle;
-			/* Update Switch state */
-			Switch_state = STATE_PWM;
-			Switch_Oldstate = Switch_state;
-			/* Indicator LED */
-			if (SwitchindMode)
-				IND_ON();
-		}
-
+	/* Indicator LED */
+	if (SwitchindMode)
+		IND_ON();
 
 	return result;
 }

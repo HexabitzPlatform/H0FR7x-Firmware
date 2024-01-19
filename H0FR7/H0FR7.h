@@ -139,10 +139,12 @@
 #define MOSFET_MODE_CONTINUOUS_TIMED  0x02
 
 /* Module-specific Definitions */
-
 #define NUM_MODULE_PARAMS			  7
 #define STOP_MEASUREMENT_RANGING      0
 #define START_MEASUREMENT_RANGING     1
+#define DUTY_CYCLE_100_ON             100
+#define DUTY_CYCLE_0_OFF              0
+#define FREERTOS_TIMER_DEFAULT        1000
 
 /* Module EEPROM Variables */
 /* Module Addressing Space 500 - 599 */
@@ -161,7 +163,7 @@ typedef enum {
 
 /* Switch_state_t Type Definition */
 typedef enum  {
-	STATE_OFF,
+	STATE_OFF =0,
 	STATE_ON,
 	STATE_PWM
 } Switch_state_t;
@@ -189,8 +191,7 @@ extern void SystemClock_Config(void);
 extern void ExecuteMonitor(void);
 
 extern Switch_state_t Switch_State;
-//extern uint8_t SwitchindMode;
-//extern TIM_HandleTypeDef htim17;
+
 
 void initialValue(void);
 
@@ -202,7 +203,7 @@ Module_Status SetSwitchPWM(uint8_t dutycycle);
 extern Module_Status OutputOn(uint32_t timeout);
 extern Module_Status OutputOff(void);
 extern Module_Status OutputToggle(void);
-extern Module_Status OutputPWM(float dutyCycle);
+extern Module_Status OutputPWM(uint32_t dutyCycle);
 extern float Sample_current_measurement(void);
 extern float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period, uint32_t Timeout);
 extern float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout);
