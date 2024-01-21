@@ -12,18 +12,16 @@
 
 /* Private function prototypes -----------------------------------------------*/
 
- /* Main function ------------------------------------------------------------*/
+/* Main function ------------------------------------------------------------*/
 
 int main(void){
 
+	Module_Init();		//Initialize Module &  BitzOS
 
-	Module_Init();    //Initialize Module &  BitzOS
+
 
 	//Don't place your code here.
-	for(;;){
-
-
-	}
+	for(;;){}
 }
 
 /*-----------------------------------------------------------*/
@@ -31,8 +29,10 @@ int main(void){
 /* User Task */
 void UserTask(void *argument){
 
-	while(1){
 
+
+	// put your code here, to run repeatedly.
+	while(1){
 
 
 	}
