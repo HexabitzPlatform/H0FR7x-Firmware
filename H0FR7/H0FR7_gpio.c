@@ -1,5 +1,5 @@
 /*
- BitzOS (BOS) V0.2.9 - Copyright (C) 2017-2023 Hexabitz
+ BitzOS (BOS) V0.3.0 - Copyright (C) 2017-2024 Hexabitz
  All rights reserved
 
  File Name     : H0FR7_gpio.c
@@ -40,24 +40,8 @@ void IND_LED_Init(void){
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(_IND_LED_PORT,&GPIO_InitStruct);
 }
-void Switch_Init(void)
-{
-	GPIO_InitTypeDef GPIO_InitStruct;
 
-	GPIO_InitStruct.Pin = _Switch_PIN;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
-	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	GPIO_InitStruct.Pin = _Switch_PIN;
-	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
-	HAL_GPIO_Init(_Switch_PORT, &GPIO_InitStruct);
-}
 /*-----------------------------------------------------------*/
-
 /* --- Check for factory reset condition: 
  - P1 TXD is connected to last port RXD    
  */

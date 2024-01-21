@@ -1,8 +1,8 @@
 /*
- BitzOS (BOS) V0.2.9 - Copyright (C) 2017-2023 Hexabitz
+ BitzOS (BOS) V0.3.0 - Copyright (C) 2017-2024 Hexabitz
  All rights reserved
 
- File Name     : H0FR6_adc.h
+ File Name     : H0FR7_adc.h
  Description   : Header file provides configuration of the ADC instances.
 
  */
