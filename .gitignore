@@ -1,7 +1,8 @@
-MDK-ARM/Objects/
-MDK-ARM/Listings/
-*.Admin
-MDK-ARM/H0FRx.uvoptx
-MDK-ARM/H0FRx.uvprojx
-*.su
 *.o
+*.d
+*.su
+*.Admin
+*.dbgconf
+*.asaad
+*.uvoptx
+*.cyclo
