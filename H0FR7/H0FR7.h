@@ -169,8 +169,8 @@ typedef enum  {
 } Switch_state_t;
 
 /* Indicator LED */
-#define _IND_LED_PORT			GPIOA
-#define _IND_LED_PIN			GPIO_PIN_4
+#define _IND_LED_PORT			GPIOB
+#define _IND_LED_PIN			GPIO_PIN_7
 
 /* Export UART variables */
 extern UART_HandleTypeDef huart1;
