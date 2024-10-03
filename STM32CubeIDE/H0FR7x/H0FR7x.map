@@ -4850,16 +4850,16 @@ LOAD C:/ST/STM32CubeIDE_1.10.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
                 0x080125ac                SetupPortForRemoteBootloaderUpdate
  *fill*         0x080125fe        0x2 
  .text.Module_Peripheral_Init
-                0x08012600      0x174 H0FR7\H0FR7.o
+                0x08012600      0x178 H0FR7\H0FR7.o
                 0x08012600                Module_Peripheral_Init
  .text.initialValue
-                0x08012774       0x14 H0FR7\H0FR7.o
-                0x08012774                initialValue
+                0x08012778       0x14 H0FR7\H0FR7.o
+                0x08012778                initialValue
  .text.Module_MessagingTask
-                0x08012788      0x408 H0FR7\H0FR7.o
-                0x08012788                Module_MessagingTask
- .text.GetPort  0x08012b90       0x6c H0FR7\H0FR7.o
-                0x08012b90                GetPort
+                0x0801278c      0x408 H0FR7\H0FR7.o
+                0x0801278c                Module_MessagingTask
+ .text.GetPort  0x08012b94       0x68 H0FR7\H0FR7.o
+                0x08012b94                GetPort
  .text.RegisterModuleCLICommands
                 0x08012bfc       0x6c H0FR7\H0FR7.o
                 0x08012bfc                RegisterModuleCLICommands

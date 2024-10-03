@@ -36,7 +36,7 @@ float H0FR7_Current = 0.0f;
 
 uint8_t startMeasurement = STOP_MEASUREMENT;
 
-module_param_t modParam[NUM_MODULE_PARAMS] ={{.paramPtr =&H0FR7_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
+module_param_t modParam[NUM_MODULE_PARAMS] = {{.paramPtr =&H0FR7_Current, .paramFormat =FMT_FLOAT, .paramName ="current"}};
 /* Exported variables */
 extern FLASH_ProcessTypeDef pFlash;
 extern uint8_t numOfRecordedSnippets;
@@ -413,8 +413,7 @@ void Module_Peripheral_Init(void){
 	MX_ADC1_Init();
 
 	 //Circulating DMA Channels ON All Module
-	 for(int i=1;i<=NumOfPorts;i++)
-		{
+	 for(int i=1;i<=NumOfPorts;i++){
 		  if(GetUart(i)==&huart1)
 				   { index_dma[i-1]=&(DMA1_Channel1->CNDTR); }
 		  else if(GetUart(i)==&huart2)
@@ -424,9 +423,9 @@ void Module_Peripheral_Init(void){
 		  else if(GetUart(i)==&huart4)
 				   { index_dma[i-1]=&(DMA1_Channel4->CNDTR); }
 		  else if(GetUart(i)==&huart5)
-				   { index_dma[i-1]=&(DMA1_Channel4->CNDTR); }
-		  else if(GetUart(i)==&huart6)
 				   { index_dma[i-1]=&(DMA1_Channel5->CNDTR); }
+		  else if(GetUart(i)==&huart6)
+				   { index_dma[i-1]=&(DMA1_Channel6->CNDTR); }
 		}
 
 	/* Create module special task (if needed) */
@@ -503,16 +502,15 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 /* --- Get the port for a given UART.
  */
 uint8_t GetPort(UART_HandleTypeDef *huart){
-
-	if(huart->Instance == USART3)
+	if(huart->Instance == USART5)
 		return P1;
-	else if(huart->Instance == USART1)
-		return P2;
-	else if(huart->Instance == USART5)
-		return P3;
-	else if(huart->Instance == USART6)
-		return P4;
 	else if(huart->Instance == USART2)
+		return P2;
+	else if(huart->Instance == USART3)
+		return P3;
+	else if(huart->Instance == USART1)
+		return P4;
+	else if(huart->Instance == USART5)
 		return P5;
 
 	return 0;
