@@ -43,7 +43,7 @@ extern uint8_t numOfRecordedSnippets;
 
 /* Private variables ---------------------------------------------------------*/
 extern ADC_HandleTypeDef hadc1;
-extern TIM_HandleTypeDef htim17;
+extern TIM_HandleTypeDef htim14;
 
 
 /* FreeRTOS Task & Timer */
@@ -65,7 +65,7 @@ static float Current_Calculation(void);
 /* Private function prototypes -----------------------------------------------*/
 void ExecuteMonitor(void);
 void SwitchTimerCallback(TimerHandle_t xTimerSwitch);
-void MX_TIM17_Init(void);
+extern void MX_TIM14_Init(void);
 
 static void MosfetTask(void *argument);
 static Module_Status SendMeasurementResult(uint8_t request,float value,uint8_t module,uint8_t port,float *buffer);
@@ -408,7 +408,7 @@ void Module_Peripheral_Init(void){
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
 	/* Timer init */
-	MX_TIM17_Init();
+	MX_TIM14_Init();
 	/* ADC init */
 	MX_ADC1_Init();
 

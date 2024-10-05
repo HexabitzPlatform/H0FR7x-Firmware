@@ -98,8 +98,8 @@
 
 /* H0FR7x Definitions */
 #define	SWITCHING_PIN			 GPIO_PIN_1
-#define	SWITCHING_PORT			 GPIOD
-#define SWITCHING_TIMER_HANDLE   &htim17
+#define	SWITCHING_PORT			 GPIOB
+#define SWITCHING_TIMER_HANDLE   &htim14
 #define SWITCHING_TIM_CH		 TIM_CHANNEL_1
 #define SWITCHING_GPIO_CLK()	 __GPIOD_CLK_ENABLE();
 #define PWM_TIMER_CLOCK_ARR		 1599   /* Fpwm_clk = 16 MHZ / ( 1599 + 1 ) * ( 0 + 1) = 10 KHZ */
