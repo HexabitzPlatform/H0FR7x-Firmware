@@ -102,7 +102,11 @@
 #define SWITCHING_TIMER_HANDLE   &htim14
 #define SWITCHING_TIM_CH		 TIM_CHANNEL_1
 #define SWITCHING_GPIO_CLK()	 __GPIOD_CLK_ENABLE();
-#define PWM_TIMER_CLOCK_ARR		 1599   /* Fpwm_clk = 16 MHZ / ( 1599 + 1 ) * ( 0 + 1) = 10 KHZ */
+/*
+ *  Fpwm_clk =  F_clk /((Period(ARR) + 1 ) * (Prescaler + 1))
+ *  20 KHZ = 40 MHZ / ((Period + 1 ) * ( 0 + 1 )) --> Period = 2000 - 1 = 1999
+ *  */
+#define PWM_TIMER_CLOCK_ARR		 1999
 //#define Switch_PWM_DEF_FREQ			10000
 //#define Switch_PWM_DEF_PERIOD		((float) (1/Switch_PWM_FREQ) )
 
