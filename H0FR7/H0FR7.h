@@ -110,6 +110,10 @@
 //#define Switch_PWM_DEF_FREQ			10000
 //#define Switch_PWM_DEF_PERIOD		((float) (1/Switch_PWM_FREQ) )
 
+#define ADC_PORT             GPIOA
+#define ADC_PIN              GPIO_PIN_4
+#define ADC_CHANNAL          ADC_CHANNEL_4
+
 #define ADC_CONVERSION 				  0.0058
 
 #define MOSFET_DEFAULT_MAX_LOOP       2000

@@ -6,12 +6,9 @@
 ..\..\H0FR7\H0FR7_inputs.c:375:12:AddPortButton	6
 ..\..\H0FR7\H0FR7_inputs.c:445:12:RemovePortButton	8
 ..\..\H0FR7\H0FR7_inputs.c:528:12:SetButtonEvents	47
-..\..\H0FR7\H0FR7_inputs.c:642:6:MX_ADC_Init	2
-..\..\H0FR7\H0FR7_inputs.c:663:6:HAL_ADC_MspInit	2
-..\..\H0FR7\H0FR7_inputs.c:689:6:HAL_ADC_MspDeInit	2
-..\..\H0FR7\H0FR7_inputs.c:712:6:ADCSelectChannel	5
+..\..\H0FR7\H0FR7_inputs.c:712:6:ADCSelectChannel	4
 ..\..\H0FR7\H0FR7_inputs.c:728:6:ReadADCChannel	4
-..\..\H0FR7\H0FR7_inputs.c:766:6:ReadTempAndVref	6
+..\..\H0FR7\H0FR7_inputs.c:766:6:ReadTempAndVref	5
 ..\..\H0FR7\H0FR7_inputs.c:826:10:Get_PIN	3
 ..\..\H0FR7\H0FR7_inputs.c:834:7:GetReadPrecentage	7
 ..\..\H0FR7\H0FR7_inputs.c:890:10:Get_channel	9
