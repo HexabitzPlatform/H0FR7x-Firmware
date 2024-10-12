@@ -110,11 +110,12 @@
 //#define Switch_PWM_DEF_FREQ			10000
 //#define Switch_PWM_DEF_PERIOD		((float) (1/Switch_PWM_FREQ) )
 
-#define ADC_PORT             GPIOA
-#define ADC_PIN              GPIO_PIN_4
-#define ADC_CHANNAL          ADC_CHANNEL_4
-
-#define ADC_CONVERSION 				  0.0058
+#define ADC_PORT              GPIOA
+#define ADC_PIN               GPIO_PIN_4
+#define ADC_CHANNAL           ADC_CHANNEL_4
+#define DIGITAL_SCALE_12BITS  ((uint32_t) 0xFFF) /* Full-scale digital value with a resolution of 12 bits*/
+#define VREFANALOG_VOLTAGE    ((uint32_t) 2500) /* Voltage internal reference scale 1: VREF_OUT1 around 2500 mV (unit: mVolt) */
+#define IC_GAIN               0.125 /*  ICS gain where give 2.5 Volt at 20 A ; 20 A max load current*/
 
 #define MOSFET_DEFAULT_MAX_LOOP       2000
 
@@ -212,7 +213,7 @@ extern Module_Status OutputOn(uint32_t timeout);
 extern Module_Status OutputOff(void);
 extern Module_Status OutputToggle(void);
 extern Module_Status OutputPWM(uint32_t dutyCycle);
-extern float Sample_current_measurement(void);
+extern Module_Status SampleCurrentMeasurement(float* Current);
 extern float Stream_current_To_Port(uint8_t Port, uint8_t Module, uint32_t Period, uint32_t Timeout);
 extern float Stream_current_To_CLI_V(uint32_t Period, uint32_t Timeout);
 extern float Stream_current_To_CLI(uint32_t Period, uint32_t Timeout);

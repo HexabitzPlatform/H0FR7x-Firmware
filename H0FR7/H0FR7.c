@@ -473,7 +473,7 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 				OutputPWM(tempFloat);
 				break;
 			case CODE_H0FR7_SAMPLE_PORT:
-				Current=Sample_current_measurement();
+				SampleCurrentMeasurement(&Current);
 				SendMeasurementResult(REQ_SAMPLE, Current, cMessage[port - 1][1+shift], cMessage[port - 1][shift], NULL);
 				break;
 			case CODE_H0FR7_STREAM_PORT:
@@ -552,23 +552,26 @@ void SwitchTimerCallback(TimerHandle_t xTimerSwitch) {
 /*-----------------------------------------------------------*/
 /* --- ADC Calculation for the Current in H0FR7 (Mosfet)---*/
 static float Current_Calculation(void) {
-	ADC_ChannelConfTypeDef sConfig ={0};
-
-	sConfig.Channel = ADC_CHANNEL_0;
-	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
-	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
+	float ADCconvertedData_mVolt;
+	float ADCconvertedData_mAmper;
+//	ADC_ChannelConfTypeDef sConfig ={0};
+//	sConfig.Channel = ADC_CHANNEL_0;
+//	sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
+//	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
+//	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
 	OutputOn(3000);
 	Delay_ms(1000);
 	HAL_ADC_Start(&hadc1);
 	HAL_ADC_PollForConversion(&hadc1,10);
 	rawValues =HAL_ADC_GetValue(&hadc1);
 	HAL_ADC_Stop(&hadc1);
-	sConfig.Channel = ADC_CHANNEL_0;
-	sConfig.Rank = ADC_RANK_NONE;
-	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
-	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
-	return (rawValues * ADC_CONVERSION);
+//	sConfig.Channel = ADC_CHANNEL_0;
+//	sConfig.Rank = ADC_RANK_NONE;
+//	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
+//	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
+	ADCconvertedData_mVolt = (float)((rawValues) * (VREFANALOG_VOLTAGE) / DIGITAL_SCALE_12BITS);
+	ADCconvertedData_mAmper = (float)(ADCconvertedData_mVolt / IC_GAIN);
+    return ADCconvertedData_mAmper;
 }
 
 /*-----------------------------------------------------------*/
@@ -868,17 +871,16 @@ Module_Status OutputPWM(uint32_t dutyCycle) {
 
 /* --- Read the Current value with Analog Digital Converter (ADC) in H0FR7 ---
  */
-float Sample_current_measurement(void) {
-	float temp;
+Module_Status SampleCurrentMeasurement(float* Current) {
 	mosfetMode = REQ_SAMPLE;
 	startMeasurement = START_MEASUREMENT;
 
 	if (mosfetState == REQ_TIMEOUT) {
-		return 0;
+		*Current = 0;
 	} else {
-		temp = Current_Calculation();
+		*Current = Current_Calculation();
 		mosfetState = REQ_IDLE;
-		return temp;
+		return H0FR7_OK;
 	}
 }
 
