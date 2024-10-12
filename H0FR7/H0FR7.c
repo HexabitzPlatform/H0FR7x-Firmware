@@ -570,6 +570,7 @@ static float Current_Calculation(void) {
 //	sConfig.SamplingTime = ADC_SAMPLETIME_79CYCLES_5;
 //	HAL_ADC_ConfigChannel(&hadc1,&sConfig);
 	ADCconvertedData_mVolt = (float)((rawValues) * (VREFANALOG_VOLTAGE) / DIGITAL_SCALE_12BITS);
+	/*calculate the current from ADCconvertedData_mVolt(unit: mAmper) */
 	ADCconvertedData_mAmper = (float)(ADCconvertedData_mVolt / IC_GAIN);
     return ADCconvertedData_mAmper;
 }
@@ -869,7 +870,9 @@ Module_Status OutputPWM(uint32_t dutyCycle) {
 }
 /*-----------------------------------------------------------*/
 
-/* --- Read the Current value with Analog Digital Converter (ADC) in H0FR7 ---
+/* @brief Reads the current value using the Analog Digital Converter (ADC).
+ * @param[out] Current Pointer to a float where the measured current value will be stored (unit: mAmper)
+ * @return Module_Status
  */
 Module_Status SampleCurrentMeasurement(float* Current) {
 	mosfetMode = REQ_SAMPLE;
