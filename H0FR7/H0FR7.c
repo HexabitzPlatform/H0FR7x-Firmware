@@ -774,7 +774,7 @@ Module_Status SetSwitchPWM(uint8_t dutycycle) {
 
 	if(dutycycle >= 0 && dutycycle <= 100) {
 	HAL_TIM_PWM_Start(SWITCHING_TIMER_HANDLE, SWITCHING_TIM_CH);
-	TIM17->CCR1 = (PWM_TIMER_CLOCK_ARR * dutycycle) / 100;
+	TIM14->CCR1 = (PWM_TIMER_CLOCK_ARR * dutycycle) / 100;
 	return result = H0FR7_OK;
 	}
 	else
