@@ -456,7 +456,7 @@ void Module_Peripheral_Init(void) {
 	MX_USART1_UART_Init();
 	MX_USART2_UART_Init();
 	MX_USART3_UART_Init();
-	MX_USART4_UART_Init();
+//	MX_USART4_UART_Init();
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
 
@@ -501,7 +501,7 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 /* Get the port for a given UART */
 uint8_t GetPort(UART_HandleTypeDef *huart) {
 
-	if (huart->Instance == USART4)
+	if (huart->Instance == USART6)
 		return P1;
 	else if (huart->Instance == USART2)
 		return P2;
@@ -511,7 +511,7 @@ uint8_t GetPort(UART_HandleTypeDef *huart) {
 		return P4;
 	else if (huart->Instance == USART5)
 		return P5;
-	else if (huart->Instance == USART6)
+	else if (huart->Instance == USART4)
 		return P6;
 
 	return 0;

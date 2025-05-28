@@ -27,7 +27,11 @@ int main(void){
 /***************************************************************************/
 /* User Task */
 void UserTask(void *argument){
-
+SwapUartPins(&huart6, REVERSED);
+SwapUartPins(&huart5, REVERSED);
+SwapUartPins(&huart3, REVERSED);
+SwapUartPins(&huart2, REVERSED);
+SwapUartPins(&huart1, REVERSED);
 	/* put your code here, to run repeatedly. */
 	while(1){
 
