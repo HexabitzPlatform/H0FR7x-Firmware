@@ -87,6 +87,7 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef *adcHandle){
 	/* ADC1 clock enable */
 	__HAL_RCC_ADC_CLK_ENABLE();
 	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
 
 	if(adcSelectFlag[0] == 1){
 		GPIO_InitStruct.Pin = ADC_CH1_PIN | ADC_CH2_PIN;

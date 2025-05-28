@@ -10,7 +10,10 @@
 #include "BOS.h"
 
 /* Private variables *******************************************************/
-
+float adcalue1 =0;
+float adcalue2 =0;
+float adcalue3 =0;
+float adcalue4 =0;
 /* Private Function Prototypes *********************************************/
 
 /* Main Function ***********************************************************/
@@ -27,13 +30,18 @@ int main(void){
 /***************************************************************************/
 /* User Task */
 void UserTask(void *argument){
-SwapUartPins(&huart6, REVERSED);
-SwapUartPins(&huart5, REVERSED);
-SwapUartPins(&huart3, REVERSED);
-SwapUartPins(&huart2, REVERSED);
-SwapUartPins(&huart1, REVERSED);
+
+
+	 ADCSelectPort(P2);
+	 ADCSelectPort(P3);
+
 	/* put your code here, to run repeatedly. */
 	while(1){
+
+	ReadADCChannel(P2,"top",&adcalue1);
+	ReadADCChannel(P2,"bottom",&adcalue2);
+	ReadADCChannel(P3,"top",&adcalue3);
+	ReadADCChannel(P3,"bottom",&adcalue4);
 
 	}
 }
