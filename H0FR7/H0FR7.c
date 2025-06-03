@@ -26,7 +26,7 @@ UART_HandleTypeDef huart4;
 UART_HandleTypeDef huart5;
 UART_HandleTypeDef huart6;
 
-
+TIM_HandleTypeDef htim3;
 
 /* Private Variables *******************************************************/
 
@@ -36,7 +36,7 @@ ModuleParam_t ModuleParam[NUM_MODULE_PARAMS] = { 0 };
 
 
 /* Private Function Prototypes *********************************************/
-
+void MX_TIM3_Init(void);
 void Module_Peripheral_Init(void);
 void SetupPortForRemoteBootloaderUpdate(uint8_t port);
 void remoteBootloaderUpdate(uint8_t src,uint8_t dst,uint8_t inport,uint8_t outport);
@@ -460,6 +460,10 @@ void Module_Peripheral_Init(void) {
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
 
+	/* MOSFET Timer Init */
+	MX_TIM3_Init();
+	/* ADC Init */
+	MX_ADC1_Init();
 
 	/* Circulating DMA Channels ON All Module */
 	for (int i = 1; i <= NUM_OF_PORTS; i++) {

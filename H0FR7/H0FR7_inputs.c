@@ -82,40 +82,40 @@ void MX_ADC_Init(void){
 }
 
 /***************************************************************************/
-void HAL_ADC_MspInit(ADC_HandleTypeDef *adcHandle){
-	GPIO_InitTypeDef GPIO_InitStruct ={0};
-	/* ADC1 clock enable */
-	__HAL_RCC_ADC_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_GPIOB_CLK_ENABLE();
-
-	if(adcSelectFlag[0] == 1){
-		GPIO_InitStruct.Pin = ADC_CH1_PIN | ADC_CH2_PIN;
-		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		HAL_GPIO_Init(ADC12_GPIO_PORT,&GPIO_InitStruct);
-	}
-	else{
-		GPIO_InitStruct.Pin = ADC_CH3_PIN | ADC_CH4_PIN;
-		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-		GPIO_InitStruct.Pull = GPIO_NOPULL;
-		HAL_GPIO_Init(ADC34_GPIO_PORT,&GPIO_InitStruct);
-	}
-}
+//void HAL_ADC_MspInit(ADC_HandleTypeDef *adcHandle){
+//	GPIO_InitTypeDef GPIO_InitStruct ={0};
+//	/* ADC1 clock enable */
+//	__HAL_RCC_ADC_CLK_ENABLE();
+//	__HAL_RCC_GPIOA_CLK_ENABLE();
+//	__HAL_RCC_GPIOB_CLK_ENABLE();
+//
+//	if(adcSelectFlag[0] == 1){
+//		GPIO_InitStruct.Pin = ADC_CH1_PIN | ADC_CH2_PIN;
+//		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+//		GPIO_InitStruct.Pull = GPIO_NOPULL;
+//		HAL_GPIO_Init(ADC12_GPIO_PORT,&GPIO_InitStruct);
+//	}
+//	else{
+//		GPIO_InitStruct.Pin = ADC_CH3_PIN | ADC_CH4_PIN;
+//		GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+//		GPIO_InitStruct.Pull = GPIO_NOPULL;
+//		HAL_GPIO_Init(ADC34_GPIO_PORT,&GPIO_InitStruct);
+//	}
+//}
 
 /***************************************************************************/
-void HAL_ADC_MspDeInit(ADC_HandleTypeDef *adcHandle){
-
-	if(adcHandle->Instance == ADC1){
-
-		/* Peripheral clock disable */
-		__HAL_RCC_ADC_CLK_DISABLE();
-		HAL_GPIO_DeInit(ADC12_GPIO_PORT,ADC_CH1_PIN);
-		HAL_GPIO_DeInit(ADC12_GPIO_PORT,ADC_CH2_PIN);
-		HAL_GPIO_DeInit(ADC34_GPIO_PORT,ADC_CH3_PIN);
-		HAL_GPIO_DeInit(ADC34_GPIO_PORT,ADC_CH4_PIN);
-	}
-}
+//void HAL_ADC_MspDeInit(ADC_HandleTypeDef *adcHandle){
+//
+//	if(adcHandle->Instance == ADC1){
+//
+//		/* Peripheral clock disable */
+//		__HAL_RCC_ADC_CLK_DISABLE();
+//		HAL_GPIO_DeInit(ADC12_GPIO_PORT,ADC_CH1_PIN);
+//		HAL_GPIO_DeInit(ADC12_GPIO_PORT,ADC_CH2_PIN);
+//		HAL_GPIO_DeInit(ADC34_GPIO_PORT,ADC_CH3_PIN);
+//		HAL_GPIO_DeInit(ADC34_GPIO_PORT,ADC_CH4_PIN);
+//	}
+//}
 /***************************************************************************/
 void Error_Handler(void){
 

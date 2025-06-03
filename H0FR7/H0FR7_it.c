@@ -18,6 +18,9 @@ extern uint8_t WakeupFromStopFlag;
 extern uint8_t UARTRxBuf[NUM_OF_PORTS][MSG_RX_BUF_SIZE];
 extern TaskHandle_t xCommandConsoleTaskHandle; /* CLI Task handler */
 
+extern DMA_HandleTypeDef hdma_adc1;
+extern ADC_HandleTypeDef hadc1;
+
 /* Local Variables *********************************************************/
 uint16_t PacketLength =0;
 uint8_t Count =0;
@@ -43,6 +46,19 @@ void HardFault_Handler(void){
 	NVIC_SystemReset();
 	for(;;){
 	};
+}
+
+
+
+/***************************************************************************/
+/**
+  * @brief: This is called when the ADC conversion is complete, and it's typically used to process the ADC value
+  * (calculating the Moving Average).
+  */
+void ADC1_COMP_IRQHandler(void)
+{
+  HAL_ADC_IRQHandler(&hadc1);
+
 }
 
 /***************************************************************************/
@@ -217,6 +233,11 @@ void DMA1_Ch4_7_DMA2_Ch1_5_DMAMUX1_OVR_IRQHandler(void) {
 	if (HAL_DMA_GET_IT_SOURCE(DMA1,DMA_ISR_GIF6) == SET)
 		DMA_IRQHandler(GetPort(&huart6));
 #endif
+
+	/* @brief: This is called when the data transfer from the ADC to memory
+	  via DMA is completed, or if a transfer error occurs.*/
+
+	  HAL_DMA_IRQHandler(&hdma_adc1);
 
 }
 

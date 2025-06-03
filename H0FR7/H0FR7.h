@@ -25,6 +25,7 @@
 #include "H0FR7_dma.h"
 #include "H0FR7_inputs.h"
 #include "H0FR7_eeprom.h"
+#include "H0FR7_adc.h"
 
 /* Exported Macros *********************************************************/
 #define	MODULE_PN		_H0FR7
@@ -94,6 +95,19 @@
 #define	USART6_TX_PORT		GPIOB
 #define	USART6_RX_PORT		GPIOB
 #define	USART6_AF			GPIO_AF8_USART6
+
+/* SWITCH_CONTROL MOSFET Gate Driver Timer Definitions */
+#define SWITCH_CONTROL_PWM_PIN        GPIO_PIN_1
+#define SWITCH_CONTROL_PWM_PORT       GPIOB
+#define SWITCH_CONTROL_TIM_HANDLE     &htim3
+#define SWITCH_CONTROL_TIM_CH         TIM_CHANNEL_4
+#define SWITCH_CONTROL_ARR            htim3.Instance->ARR
+#define SWITCH_CONTROL_CCR            htim3.Instance->CCR4
+
+/* CURRENT_SENSE Port-ADC Definitions */
+#define CURRENT_SENSE_GPIO_PIN   	  GPIO_PIN_4
+#define CURRENT_SENSE_GPIO_PORT  	  GPIOA
+#define CURRENT_SENSE_CH4_CHANNEL     ADC_CHANNEL_4
 
 /* Indicator LED */
 #define _IND_LED_PORT		GPIOB
