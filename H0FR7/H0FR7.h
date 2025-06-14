@@ -140,6 +140,7 @@ typedef enum {
 	H0FR7_OK = 0,
 	H0FR7_ERR_UNKNOWNMESSAGE,
 	H0FR7_ERR_WRONGPARAMS,
+	H0FR7_ERR_WRONGDUTYCYCLE,
 	H0FR7_ERROR = 255
 } Module_Status;
 
@@ -174,7 +175,7 @@ Module_Status OutputTurnOn(void);
 Module_Status OutputTurnOff(void);
 Module_Status OutputToggle(void);
 Module_Status OutputPWM(uint8_t dutyCycle);
-Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent);
+Module_Status GetLoadCurrent(uint8_t DutyCycle , float* LoadCurrent);
 
 #endif /* H0FR7_H */
 

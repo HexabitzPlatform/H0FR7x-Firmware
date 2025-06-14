@@ -58,11 +58,55 @@ static float CalculateLoadCurrent (void);
 Module_Status SwitchControlPWM(uint8_t dutycycle);
 
 /* Create CLI commands *****************************************************/
-
+portBASE_TYPE CLI_Output_Turn_ONCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
+portBASE_TYPE CLI_Output_Turn_OFFCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
+portBASE_TYPE CLI_Output_ToggleCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
+portBASE_TYPE CLI_Output_PWMCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
+portBASE_TYPE CLI_Get_CurrentCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
 
 /* CLI command structure ***************************************************/
+/* CLI command structure : OutputTurnOn */
+const CLI_Command_Definition_t CLI_Output_Turn_ONCommandDefinition = {
+	( const int8_t * ) "turn_on", /* The command string to type. */
+	( const int8_t * ) "turn_on:\r\nTurn on the output by turning the switch fully ON \n\r" ,
+	CLI_Output_Turn_ONCommand, /* The function to run. */
+	0 /* zero parameters are expected. */
+};
 
+/***************************************************************************/
+/* CLI command structure : OutputTurnOff */
+const CLI_Command_Definition_t CLI_Output_Turn_OFFCommandDefinition = {
+	( const int8_t * ) "turn_off", /* The command string to type. */
+	( const int8_t * ) "turn_off:\r\nTurn off the output by turning the switch fully OFF \r\n",
+	CLI_Output_Turn_OFFCommand, /* The function to run. */
+	0 /* zero parameters are expected. */
+};
 
+/***************************************************************************/
+/* CLI command structure :OutputToggle */
+const CLI_Command_Definition_t CLI_Output_ToggleCommandDefinition = {
+	( const int8_t * ) "toggle", /* The command string to type. */
+	( const int8_t * ) "toggle:\r\nToggles the output state between ON and OFF\n\r",
+		CLI_Output_ToggleCommand, /* The function to run. */
+	0 /* zero parameters are expected. */
+};
+/***************************************************************************/
+/* CLI command structure : OutputPWM */
+const CLI_Command_Definition_t CLI_Output_PWMCommandDefinition = {
+	( const int8_t * ) "turn_pwm", /* The command string to type. */
+	( const int8_t * ) "turn_pwm :Parameters required to execute a OutputPWM:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
+	CLI_Output_PWMCommand, /* The function to run. */
+	1 /* one parameters are expected. */
+};
+
+/***************************************************************************/
+/* CLI command structure : GetLoadCurrent */
+const CLI_Command_Definition_t CLI_Get_CurrentCommandDefinition = {
+	( const int8_t * ) "get_current", /* The command string to type. */
+	( const int8_t * ) "get_current:\r\nParameters required to execute a GetLoadCurrent:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
+		CLI_Get_CurrentCommand, /* The function to run. */
+	1 /* three parameters are expected. */
+};
 
 /***************************************************************************/
 /************************ Private function Definitions *********************/
@@ -537,7 +581,11 @@ uint8_t GetPort(UART_HandleTypeDef *huart) {
 /***************************************************************************/
 /* Register this module CLI Commands */
 void RegisterModuleCLICommands(void) {
-
+	FreeRTOS_CLIRegisterCommand(&CLI_Output_Turn_ONCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&CLI_Output_Turn_OFFCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&CLI_Output_ToggleCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&CLI_Output_PWMCommandDefinition);
+	FreeRTOS_CLIRegisterCommand(&CLI_Get_CurrentCommandDefinition);
 
 }
 
@@ -730,7 +778,12 @@ Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
 		return H0FR7_ERR_WRONGPARAMS;
 
 	OutputPWM(DutyCycle);
-	*LoadCurrent = CalculateLoadCurrent();
+
+
+	if (DutyCycle == 0)
+		*LoadCurrent = 0;
+	if (DutyCycle >= 25)
+		*LoadCurrent = CalculateLoadCurrent() + 20.0f;
 
 	return status;
 }
@@ -738,18 +791,145 @@ Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
 /***************************************************************************/
 /********************************* Commands ********************************/
 /***************************************************************************/
+portBASE_TYPE CLI_Output_Turn_ONCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+	Module_Status status = H0FR7_OK;
 
+	static const int8_t *pcOKMessage = (int8_t*) "The output has been successfully turned on\r\n";
+
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	status = OutputTurnOn();
+
+	/* Respond to the command */
+	if (status == H0FR7_OK) {
+		strcpy((char*) pcWriteBuffer, (char*) pcOKMessage);
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
 
 /***************************************************************************/
+portBASE_TYPE CLI_Output_Turn_OFFCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+	Module_Status status = H0FR7_OK;
 
+	static const int8_t *pcOKMessage = (int8_t*) "The output has been successfully turned off\r\n";
+
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	status = OutputTurnOff();
+
+	/* Respond to the command */
+	if (status == H0FR7_OK) {
+		strcpy((char*) pcWriteBuffer, (char*) pcOKMessage);
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
 
 /***************************************************************************/
+portBASE_TYPE CLI_Output_ToggleCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+	Module_Status status = H0FR7_OK;
 
+	static const int8_t *pcOKMessage = (int8_t*) "The output has been successfully toggle\r\n";
+
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	status = OutputToggle();
+
+	/* Respond to the command */
+	if (status == H0FR7_OK) {
+		strcpy((char*) pcWriteBuffer, (char*) pcOKMessage);
+	}
+
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
 
 /***************************************************************************/
+portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+	Module_Status status = H0FR7_OK;
 
+	uint8_t DutyCycle;
+
+	portBASE_TYPE xParameterStringLength1 =0;
+
+	static int8_t *pcParameterString1;
+
+	static const int8_t *pcOKMessage = (int8_t*) "The output is running PWM in duty cycle %d%% percent\r\n";
+	static const int8_t *pcWrongDutyCycleMessage =(int8_t* )"WrongDutyCycle!\n\r";
+
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	pcParameterString1 =(int8_t* )FreeRTOS_CLIGetParameter(pcCommandString,1,&xParameterStringLength1);
+	DutyCycle =(uint8_t )atol((char* )pcParameterString1);
+
+	status = OutputPWM(DutyCycle);
+
+	/* Respond to the command */
+	if (status == H0FR7_OK) {
+		sprintf((char* )pcWriteBuffer,(char* )pcOKMessage,DutyCycle);
+	}
+	else if(status == H0FR7_ERR_WRONGDUTYCYCLE) {
+		strcpy((char* )pcWriteBuffer,(char* )pcWrongDutyCycleMessage);
+	}
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
 
 /***************************************************************************/
+portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+	Module_Status status = H0FR7_OK;
+	uint8_t Count;
+	uint8_t DutyCycle;
+	float LoadCurrent;
+
+	portBASE_TYPE xParameterStringLength1 =0;
+
+	static int8_t *pcParameterString1;
+
+	static const int8_t *pcOKMessage = (int8_t*) "Load current: %.2f mA for duty cycle %d%%\r\n";
+	static const int8_t *pcWrongDutyCycleMessage =(int8_t* )"WrongDutyCycle!\n\r";
+
+	(void) xWriteBufferLen;
+	configASSERT(pcWriteBuffer);
+
+	pcParameterString1 =(int8_t* )FreeRTOS_CLIGetParameter(pcCommandString,1,&xParameterStringLength1);
+	DutyCycle =(uint8_t )atol((char* )pcParameterString1);
+
+
+	status = GetLoadCurrent(DutyCycle, &LoadCurrent);
+	/* Respond to the command */
+	if (status == H0FR7_OK)
+	{
+		 for ( ;Count <=255 ;Count++){
+		    	LoadCurrent = CalculateLoadCurrent();
+
+		 if (Count == 255){
+
+			 sprintf((char*)pcWriteBuffer, (char*)pcOKMessage, LoadCurrent, DutyCycle);
+		break;
+		}
+	}
+
+	}
+	else if (status == H0FR7_ERR_WRONGDUTYCYCLE)
+	{
+		strcpy((char*)pcWriteBuffer, (char*)pcWrongDutyCycleMessage);
+	}
+	/* There is no more data to return after this single string, so return
+	 pdFALSE. */
+	return pdFALSE;
+}
 
 /***************************************************************************/
 /***************** (C) COPYRIGHT HEXABITZ ***** END OF FILE ****************/

@@ -46,6 +46,11 @@ float LLoadCurrent;
 int main(void){
 
 	/* Initialize Module &  BitzOS */
+
+
+
+
+
 	Module_Init();
 
 	/* Don't place your code here */
@@ -67,7 +72,7 @@ void UserTask(void *argument){
 	/* put your code here, to run repeatedly. */
 	while(1){
 
-		GetLoadCurrent (dutyCycle , &LLoadCurrent);
+//		GetLoadCurrent (dutyCycle , &LLoadCurrent);
 
 
 //		 TIM3->CCR4 = DutyCycle;
