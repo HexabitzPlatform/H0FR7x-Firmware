@@ -174,7 +174,7 @@ Module_Status OutputTurnOn(void);
 Module_Status OutputTurnOff(void);
 Module_Status OutputToggle(void);
 Module_Status OutputPWM(uint8_t dutyCycle);
-Module_Status ControlPWMandGetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent);
+Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent);
 
 #endif /* H0FR7_H */
 

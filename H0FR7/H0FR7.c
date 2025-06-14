@@ -722,7 +722,7 @@ Module_Status OutputPWM(uint8_t DutyCycle) {
 }
 
 /***************************************************************************/
-Module_Status ControlPWMandGetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
+Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
 
 	Module_Status status = H0FR7_OK;
 
