@@ -545,11 +545,26 @@ void Module_Peripheral_Init(void) {
 /* H0FR7 message processing task */
 Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uint8_t dst, uint8_t shift) {
 	Module_Status result = H0FR7_OK;
-	uint32_t period = 0;
-	uint32_t dc = 0;
-	int32_t repeat = 0;
+	uint8_t DutyCycle =0;
 
 	switch (code) {
+
+	case CODE_H0FR7_ON:
+		OutputTurnOn();
+		break;
+
+	case CODE_H0FR7_OFF:
+		OutputTurnOff();
+		break;
+
+	case CODE_H0FR7_TOGGLE:
+		OutputToggle();
+		break;
+
+	case CODE_H0FR7_PWM:
+		DutyCycle =(uint8_t )cMessage[port - 1][shift];
+		OutputPWM(DutyCycle);
+		break;
 
 	default:
 		result = H0FR7_ERR_UNKNOWNMESSAGE;
