@@ -116,6 +116,21 @@
 /* Module-specific Macro Definitions ***************************************/
 #define NUM_MODULE_PARAMS		1
 
+#define PWM_MAX_ARR            1600  /*Maximum ARR value corresponding to 100% PWM duty cycle*/
+#define PWM_DUTY_CYCLE_FULL    100   /*Duty cycle value for fully ON PWM signal (100%)*/
+#define PWM_DUTY_CYCLE_OFF     0     /*Duty cycle value for fully OFF PWM signal (0%)*/
+
+// ADC to millivolt conversion factor (based on ADC resolution and Vref)
+#define ADC_STEP_MV            0.6103515f  // For 12-bit ADC and Vref = 2.5V   (2500/4096)
+
+// Offset voltage in millivolts (from calibration equation)
+#define CURRENT_SENSE_OFFSET   4.1943f     // Voltage offset in mV
+
+// Current sensor gain in mV per Amp (from calibration equation)
+#define CURRENT_SENSE_GAIN     0.1288f     // mV per Amp
+
+
+#define MOVING_AVG_SIZE        1500
 /* Module-specific Enumeration Definitions *********************************/
 
 
@@ -124,8 +139,16 @@
 typedef enum {
 	H0FR7_OK = 0,
 	H0FR7_ERR_UNKNOWNMESSAGE,
+	H0FR7_ERR_WRONGPARAMS,
 	H0FR7_ERROR = 255
 } Module_Status;
+
+/* Switch_state_t Type Definition */
+typedef enum  {
+	STATE_OFF =0,
+	STATE_ON,
+	STATE_PWM
+} Switch_State_t;
 
 /* Export UART variables */
 extern UART_HandleTypeDef huart1;
@@ -147,7 +170,11 @@ extern void SystemClock_Config(void);
 /***************************************************************************/
 /***************************** General Functions ***************************/
 /***************************************************************************/
-
+Module_Status OutputTurnOn(void);
+Module_Status OutputTurnOff(void);
+Module_Status OutputToggle(void);
+Module_Status OutputPWM(uint8_t dutyCycle);
+Module_Status ControlPWMandGetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent);
 
 #endif /* H0FR7_H */
 

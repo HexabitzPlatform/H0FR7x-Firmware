@@ -30,6 +30,15 @@ TIM_HandleTypeDef htim3;
 
 /* Private Variables *******************************************************/
 
+static uint16_t adcResult = 0u;
+static uint16_t adcBuffer[MOVING_AVG_SIZE] = {0u};  // Circular buffer storing moving ADC samples
+static uint16_t sampleCount = 0u;                   // Number of samples collected so far
+static uint16_t bufferIndex = 0u;                   // Current index in the circular buffer
+static uint32_t sum = 0u;
+static uint32_t MovingAvg = 0u;
+static float adcVoltagemV = 0.0f;
+
+Switch_State_t SwitchState;
 
 /* Module Parameters */
 ModuleParam_t ModuleParam[NUM_MODULE_PARAMS] = { 0 };
@@ -44,7 +53,9 @@ uint8_t ClearROtopology(void);
 Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uint8_t dst, uint8_t shift);
 
 /* Local Function Prototypes ***********************************************/
-
+static uint16_t MovingAverage(uint16_t adcNewValue);
+static float CalculateLoadCurrent (void);
+Module_Status SwitchControlPWM(uint8_t dutycycle);
 
 /* Create CLI commands *****************************************************/
 
@@ -464,6 +475,8 @@ void Module_Peripheral_Init(void) {
 	MX_TIM3_Init();
 	/* ADC Init */
 	MX_ADC1_Init();
+	/* Start ADC1 in DMA mode to continuously read one value into adcResult */
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&adcResult, 1);
 
 	/* Circulating DMA Channels ON All Module */
 	for (int i = 1; i <= NUM_OF_PORTS; i++) {
@@ -548,39 +561,179 @@ Module_Status GetModuleParameter(uint8_t paramIndex, float *value) {
 }
 
 /***************************************************************************/
-
-
-
-/***************************************************************************/
 /****************************** Local Functions ****************************/
 /***************************************************************************/
+/**
+ * @brief Calculates a moving average of the converted ADC samples.
+ *
+ * @param adcValueDivided The latest ADC sample after conversion/scaling.
+ * @return The moving average of the last N samples.
+ */
+static uint16_t MovingAverage(uint16_t adcNewValue) {
 
+    /* Remove oldest sample from sum if buffer is full */
+    if (sampleCount >= MOVING_AVG_SIZE) {
+        sum -= adcBuffer[bufferIndex];
+    } else {
+        sampleCount++;
+    }
+
+    /* Add new sample to buffer and update sum */
+    adcBuffer[bufferIndex] = adcNewValue;
+    sum += adcNewValue;
+
+    /* Advance buffer index circularly */
+    bufferIndex = (bufferIndex + 1) % MOVING_AVG_SIZE;
+
+    /* Return average of samples collected so far */
+    return (uint16_t)(sum / sampleCount);
+}
 
 /***************************************************************************/
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+
+	MovingAvg = MovingAverage(adcResult);
+}
 
 /***************************************************************************/
+/**
+ * @brief: Sets PWM duty cycle to control the switch (MOSFET).
+ * @param1: dutycycle The desired PWM duty cycle (0 to 100).
+ */
 
+Module_Status SwitchControlPWM(uint8_t dutycycle){
+
+	Module_Status status =H0FR7_OK;
+
+	if(dutycycle >= 0 && dutycycle <= 100) {
+
+		HAL_TIM_PWM_Start(SWITCH_CONTROL_TIM_HANDLE, SWITCH_CONTROL_TIM_CH);
+		SWITCH_CONTROL_ARR = PWM_MAX_ARR - 1;
+		SWITCH_CONTROL_CCR = ((float )dutycycle / 100.0f) * SWITCH_CONTROL_ARR;
+	}
+	else {
+
+		status = H0FR7_ERR_WRONGPARAMS;
+	}
+	return status;
+}
 
 /***************************************************************************/
+/**
+ * @brief: Calculates the load current using filtered ADC readings.
+ * @param[out]: Current Pointer to store the calculated current in mA.
+ */
+static float CalculateLoadCurrent (void) {
 
+	float Current = 0.0f;
+	  /* Start ADC calibration and conversion */
+
+	  HAL_ADCEx_Calibration_Start(&hadc1);
+	  HAL_ADC_Start_IT(&hadc1);
+
+      /* Convert the filtered ADC value to voltage in millivolts (applying step size and offset correction) */
+	  adcVoltagemV = (float) ((MovingAvg * ADC_STEP_MV) - (CURRENT_SENSE_OFFSET));
+
+	  /* Calculate the load current using the current sensing gain factor */
+	  Current = (adcVoltagemV /CURRENT_SENSE_GAIN);
+
+	  /* Stop ADC */
+	  HAL_ADC_Stop_IT(&hadc1);
+
+	  return Current;
+}
+
+/***************************************************************************/
 
 /***************************************************************************/
 /***************************** General Functions ***************************/
 /***************************************************************************/
+/**
+ * @brief: Turn on the output by turning the switch fully ON (100% PWM).
+ */
+Module_Status OutputTurnOn(void){
+	Module_Status status =H0FR7_OK;
 
+	/* Set PWM 1000 % */
+	SwitchControlPWM(PWM_DUTY_CYCLE_FULL);
+
+	/* Update Switch state */
+		SwitchState = STATE_ON;
+	return status;
+}
 
 /***************************************************************************/
+/**
+ * @brief: Turn off the output by turning the switch fully OFF (0% PWM).
+ */
+Module_Status OutputTurnOff(void){
+	Module_Status status =H0FR7_OK;
 
+	/* Set PWM 0 % */
+	SwitchControlPWM(PWM_DUTY_CYCLE_OFF);
+	/* Update Switch state */
+	SwitchState = STATE_OFF;
+
+	return status;
+}
 
 /***************************************************************************/
+/**
+ * @brief: Toggles the output state between ON and OFF.
+ */
+Module_Status OutputToggle(void) {
+	Module_Status status = H0FR7_OK;
 
+	if (SwitchState){
+
+		OutputTurnOff();
+		SwitchState = STATE_OFF;
+	}
+	else{
+
+		OutputTurnOn();
+		SwitchState = STATE_ON;
+	}
+
+	return status;
+}
 
 /***************************************************************************/
+/**
+ * @brief Sets the output to a specific PWM duty cycle (0–100%).
+ * @param dutyCycle Desired PWM dutycycle percentage (0–100).
 
+ */
+Module_Status OutputPWM(uint8_t DutyCycle) {
+	Module_Status status = H0FR7_OK;
+
+	if (DutyCycle < 0 || DutyCycle > 100)
+		return H0FR7_ERR_WRONGPARAMS;
+
+	/* Start the PWM */
+	SwitchControlPWM(DutyCycle);
+
+	/* Update Switch state */
+	SwitchState =STATE_PWM;
+
+	return status;
+}
 
 /***************************************************************************/
+Module_Status ControlPWMandGetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
 
+	Module_Status status = H0FR7_OK;
+
+	if (DutyCycle < 0 || DutyCycle > 100)
+		return H0FR7_ERR_WRONGPARAMS;
+
+	OutputPWM(DutyCycle);
+	*LoadCurrent = CalculateLoadCurrent();
+
+	return status;
+}
 
 /***************************************************************************/
 /********************************* Commands ********************************/
