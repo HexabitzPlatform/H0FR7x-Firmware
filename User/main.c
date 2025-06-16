@@ -78,15 +78,15 @@ void UserTask(void *argument){
 //		 TIM3->CCR4 = DutyCycle;
 //		 myLoadCurrent = Current();
 
-//		OutputTurnOn();
-//		HAL_Delay(3000);
+		OutputPWM(50);
+		GetLoadCurrent(&LLoadCurrent);
+//		HAL_Delay(6000);
 //		OutputTurnOff();
-//		HAL_Delay(3000);
-//		OutputToggle();
-//		HAL_Delay(3000);
+//		HAL_Delay(6000);
+//
+//		HAL_Delay(6000);
 //		OutputTurnOff();
-//		OutputPWM(50);
-//		HAL_Delay(3000);
+//		HAL_Delay(6000);
 
 
 //	ReadADCChannel(P2,"top",&adcalue1);

@@ -30,82 +30,67 @@ TIM_HandleTypeDef htim3;
 
 /* Private Variables *******************************************************/
 
-static uint16_t adcResult = 0u;
-static uint16_t adcBuffer[MOVING_AVG_SIZE] = {0u};  // Circular buffer storing moving ADC samples
-static uint16_t sampleCount = 0u;                   // Number of samples collected so far
-static uint16_t bufferIndex = 0u;                   // Current index in the circular buffer
-static uint32_t sum = 0u;
-static uint32_t MovingAvg = 0u;
-static float adcVoltagemV = 0.0f;
-
-Switch_State_t SwitchState;
-
+uint16_t adcResult = 0u;
+uint16_t adcBuffer[MOVING_AVG_SIZE] = { 0u }; // Circular buffer storing moving ADC samples
+uint16_t sampleCount = 0u;                    // Number of samples collected so far
+uint16_t bufferIndex = 0u;                    // Current index in the circular buffer
+uint32_t sum = 0u;
+uint32_t MovingAvg = 0u;
+float adcVoltagemV = 0.0f;
+float LoadCurrent = 0.0f;
 /* Module Parameters */
 ModuleParam_t ModuleParam[NUM_MODULE_PARAMS] = { 0 };
-
 
 /* Private Function Prototypes *********************************************/
 void MX_TIM3_Init(void);
 void Module_Peripheral_Init(void);
 void SetupPortForRemoteBootloaderUpdate(uint8_t port);
-void remoteBootloaderUpdate(uint8_t src,uint8_t dst,uint8_t inport,uint8_t outport);
+void remoteBootloaderUpdate(uint8_t src, uint8_t dst, uint8_t inport, uint8_t outport);
 uint8_t ClearROtopology(void);
 Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uint8_t dst, uint8_t shift);
 
 /* Local Function Prototypes ***********************************************/
-static uint16_t MovingAverage(uint16_t adcNewValue);
-static float CalculateLoadCurrent (void);
+uint16_t MovingAverage(uint16_t adcNewValue);
+Module_Status CalculateLoadCurrent(float *Current);
 Module_Status SwitchControlPWM(uint8_t dutycycle);
 
 /* Create CLI commands *****************************************************/
-portBASE_TYPE CLI_Output_Turn_ONCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
-portBASE_TYPE CLI_Output_Turn_OFFCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
-portBASE_TYPE CLI_Output_ToggleCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
-portBASE_TYPE CLI_Output_PWMCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
-portBASE_TYPE CLI_Get_CurrentCommand( int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString );
+portBASE_TYPE CLI_Output_Turn_ONCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString);
+portBASE_TYPE CLI_Output_Turn_OFFCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString);
+portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString);
+portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString);
 
 /* CLI command structure ***************************************************/
 /* CLI command structure : OutputTurnOn */
-const CLI_Command_Definition_t CLI_Output_Turn_ONCommandDefinition = {
-	( const int8_t * ) "turn_on", /* The command string to type. */
-	( const int8_t * ) "turn_on:\r\nTurn on the output by turning the switch fully ON \n\r" ,
-	CLI_Output_Turn_ONCommand, /* The function to run. */
-	0 /* zero parameters are expected. */
+const CLI_Command_Definition_t CLI_Output_Turn_ONCommandDefinition = { (const int8_t*) "turn_on", /* The command string to type. */
+(const int8_t*) "turn_on:\r\nTurn on the output by turning the switch fully ON \n\r", CLI_Output_Turn_ONCommand, /* The function to run. */
+0 /* zero parameters are expected. */
 };
 
 /***************************************************************************/
 /* CLI command structure : OutputTurnOff */
-const CLI_Command_Definition_t CLI_Output_Turn_OFFCommandDefinition = {
-	( const int8_t * ) "turn_off", /* The command string to type. */
-	( const int8_t * ) "turn_off:\r\nTurn off the output by turning the switch fully OFF \r\n",
-	CLI_Output_Turn_OFFCommand, /* The function to run. */
-	0 /* zero parameters are expected. */
+const CLI_Command_Definition_t CLI_Output_Turn_OFFCommandDefinition = { (const int8_t*) "turn_off", /* The command string to type. */
+(const int8_t*) "turn_off:\r\nTurn off the output by turning the switch fully OFF \r\n",
+CLI_Output_Turn_OFFCommand, /* The function to run. */
+0 /* zero parameters are expected. */
 };
 
 /***************************************************************************/
-/* CLI command structure :OutputToggle */
-const CLI_Command_Definition_t CLI_Output_ToggleCommandDefinition = {
-	( const int8_t * ) "toggle", /* The command string to type. */
-	( const int8_t * ) "toggle:\r\nToggles the output state between ON and OFF\n\r",
-		CLI_Output_ToggleCommand, /* The function to run. */
-	0 /* zero parameters are expected. */
-};
-/***************************************************************************/
 /* CLI command structure : OutputPWM */
-const CLI_Command_Definition_t CLI_Output_PWMCommandDefinition = {
-	( const int8_t * ) "turn_pwm", /* The command string to type. */
-	( const int8_t * ) "turn_pwm :Parameters required to execute a OutputPWM:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
-	CLI_Output_PWMCommand, /* The function to run. */
-	1 /* one parameters are expected. */
+const CLI_Command_Definition_t CLI_Output_PWMCommandDefinition =
+{ (const int8_t*) "turn_pwm", /* The command string to type. */
+(const int8_t*) "turn_pwm:\r\nParameters required to execute a OutputPWM:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
+CLI_Output_PWMCommand, /* The function to run. */
+1 /* one parameters are expected. */
 };
 
 /***************************************************************************/
 /* CLI command structure : GetLoadCurrent */
-const CLI_Command_Definition_t CLI_Get_CurrentCommandDefinition = {
-	( const int8_t * ) "get_current", /* The command string to type. */
-	( const int8_t * ) "get_current:\r\nParameters required to execute a GetLoadCurrent:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
-		CLI_Get_CurrentCommand, /* The function to run. */
-	1 /* three parameters are expected. */
+const CLI_Command_Definition_t CLI_Get_CurrentCommandDefinition =
+{ (const int8_t*) "get_current", /* The command string to type. */
+(const int8_t*) "get_current:\r\nParameters required to execute a GetLoadCurrent:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
+CLI_Get_CurrentCommand, /* The function to run. */
+1 /* one parameters are expected. */
 };
 
 /***************************************************************************/
@@ -168,10 +153,12 @@ BOS_Status EnableStopModebyUARTx(uint8_t port) {
 	if ((huart->Instance == USART1) || (huart->Instance == USART2) || (huart->Instance == USART3)) {
 
 		/* make sure that no UART transfer is on-going */
-		while (__HAL_UART_GET_FLAG(huart, USART_ISR_BUSY) == SET);
+		while (__HAL_UART_GET_FLAG(huart, USART_ISR_BUSY) == SET)
+			;
 
 		/* make sure that UART is ready to receive */
-		while (__HAL_UART_GET_FLAG(huart, USART_ISR_REACK) == RESET);
+		while (__HAL_UART_GET_FLAG(huart, USART_ISR_REACK) == RESET)
+			;
 
 		/* set the wake-up event:
 		 * specify wake-up on start-bit detection */
@@ -488,16 +475,16 @@ void RemoteBootloaderUpdate(uint8_t src, uint8_t dst, uint8_t inport, uint8_t ou
  * Enable even parity
  * Set datasize to 9 bits
  */
-void SetupPortForRemoteBootloaderUpdate(uint8_t port){
+void SetupPortForRemoteBootloaderUpdate(uint8_t port) {
 
-	UART_HandleTypeDef *huart =GetUart(port);
+	UART_HandleTypeDef *huart = GetUart(port);
 	HAL_UART_DeInit(huart);
 	huart->Init.Parity = UART_PARITY_EVEN;
 	huart->Init.WordLength = UART_WORDLENGTH_9B;
 	HAL_UART_Init(huart);
 
 	/* The CLI port RXNE interrupt might be disabled so enable here again to be sure */
-	__HAL_UART_ENABLE_IT(huart,UART_IT_RXNE);
+	__HAL_UART_ENABLE_IT(huart, UART_IT_RXNE);
 
 }
 
@@ -511,7 +498,6 @@ void Module_Peripheral_Init(void) {
 	MX_USART1_UART_Init();
 	MX_USART2_UART_Init();
 	MX_USART3_UART_Init();
-//	MX_USART4_UART_Init();
 	MX_USART5_UART_Init();
 	MX_USART6_UART_Init();
 
@@ -520,7 +506,7 @@ void Module_Peripheral_Init(void) {
 	/* ADC Init */
 	MX_ADC1_Init();
 	/* Start ADC1 in DMA mode to continuously read one value into adcResult */
-	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&adcResult, 1);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &adcResult, 1);
 
 	/* Circulating DMA Channels ON All Module */
 	for (int i = 1; i <= NUM_OF_PORTS; i++) {
@@ -545,7 +531,7 @@ void Module_Peripheral_Init(void) {
 /* H0FR7 message processing task */
 Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uint8_t dst, uint8_t shift) {
 	Module_Status result = H0FR7_OK;
-	uint8_t DutyCycle =0;
+	uint8_t DutyCycle = 0;
 
 	switch (code) {
 
@@ -557,12 +543,8 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 		OutputTurnOff();
 		break;
 
-	case CODE_H0FR7_TOGGLE:
-		OutputToggle();
-		break;
-
 	case CODE_H0FR7_PWM:
-		DutyCycle =(uint8_t )cMessage[port - 1][shift];
+		DutyCycle = (uint8_t) cMessage[port - 1][shift];
 		OutputPWM(DutyCycle);
 		break;
 
@@ -598,7 +580,6 @@ uint8_t GetPort(UART_HandleTypeDef *huart) {
 void RegisterModuleCLICommands(void) {
 	FreeRTOS_CLIRegisterCommand(&CLI_Output_Turn_ONCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&CLI_Output_Turn_OFFCommandDefinition);
-	FreeRTOS_CLIRegisterCommand(&CLI_Output_ToggleCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&CLI_Output_PWMCommandDefinition);
 	FreeRTOS_CLIRegisterCommand(&CLI_Get_CurrentCommandDefinition);
 
@@ -626,57 +607,51 @@ Module_Status GetModuleParameter(uint8_t paramIndex, float *value) {
 /***************************************************************************/
 /****************************** Local Functions ****************************/
 /***************************************************************************/
-/**
- * @brief Calculates a moving average of the converted ADC samples.
- *
- * @param adcValueDivided The latest ADC sample after conversion/scaling.
- * @return The moving average of the last N samples.
+/* Calculates a moving average of the converted ADC samples.
+ * @adcNewValue: The latest ADC sample after conversion/scaling.
  */
-static uint16_t MovingAverage(uint16_t adcNewValue) {
+uint16_t MovingAverage(uint16_t adcNewValue) {
 
-    /* Remove oldest sample from sum if buffer is full */
-    if (sampleCount >= MOVING_AVG_SIZE) {
-        sum -= adcBuffer[bufferIndex];
-    } else {
-        sampleCount++;
-    }
+	/* Remove oldest sample from sum if buffer is full */
+	if (sampleCount >= MOVING_AVG_SIZE) {
+		sum -= adcBuffer[bufferIndex];
+	} else {
+		sampleCount++;
+	}
 
-    /* Add new sample to buffer and update sum */
-    adcBuffer[bufferIndex] = adcNewValue;
-    sum += adcNewValue;
+	/* Add new sample to buffer and update sum */
+	adcBuffer[bufferIndex] = adcNewValue;
+	sum += adcNewValue;
 
-    /* Advance buffer index circularly */
-    bufferIndex = (bufferIndex + 1) % MOVING_AVG_SIZE;
+	/* Advance buffer index circularly */
+	bufferIndex = (bufferIndex + 1) % MOVING_AVG_SIZE;
 
-    /* Return average of samples collected so far */
-    return (uint16_t)(sum / sampleCount);
+	/* Return average of samples collected so far */
+	return (uint16_t) (sum / sampleCount);
 }
 
 /***************************************************************************/
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
+/* Callback function called when ADC conversion is complete to updates the current reading using the moving average filter*/
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 
 	MovingAvg = MovingAverage(adcResult);
 }
 
 /***************************************************************************/
-/**
- * @brief: Sets PWM duty cycle to control the switch (MOSFET).
- * @param1: dutycycle The desired PWM duty cycle (0 to 100).
+/* Sets PWM duty cycle to control the switch (MOSFET).
+ * dutycycle: The desired PWM duty cycle (0 to 100).
  */
 
-Module_Status SwitchControlPWM(uint8_t dutycycle){
+Module_Status SwitchControlPWM(uint8_t dutycycle) {
 
-	Module_Status status =H0FR7_OK;
+	Module_Status status = H0FR7_OK;
 
-	if(dutycycle >= 0 && dutycycle <= 100) {
+	if (dutycycle >= 0 && dutycycle <= 100) {
 
 		HAL_TIM_PWM_Start(SWITCH_CONTROL_TIM_HANDLE, SWITCH_CONTROL_TIM_CH);
 		SWITCH_CONTROL_ARR = PWM_MAX_ARR - 1;
-		SWITCH_CONTROL_CCR = ((float )dutycycle / 100.0f) * SWITCH_CONTROL_ARR;
-	}
-	else {
+		SWITCH_CONTROL_CCR = ((float) dutycycle / 100.0f) * SWITCH_CONTROL_ARR;
+	} else {
 
 		status = H0FR7_ERR_WRONGPARAMS;
 	}
@@ -684,28 +659,29 @@ Module_Status SwitchControlPWM(uint8_t dutycycle){
 }
 
 /***************************************************************************/
-/**
- * @brief: Calculates the load current using filtered ADC readings.
- * @param[out]: Current Pointer to store the calculated current in mA.
- */
-static float CalculateLoadCurrent (void) {
+/* Calculates the load current using filtered ADC readings.
+ * Current: Pointer to store the calculated current in mA. */
+Module_Status CalculateLoadCurrent(float *Current) {
 
-	float Current = 0.0f;
-	  /* Start ADC calibration and conversion */
+	Module_Status status = H0FR7_OK;
 
-	  HAL_ADCEx_Calibration_Start(&hadc1);
-	  HAL_ADC_Start_IT(&hadc1);
+	if (Current == NULL)
+		return H0FR7_ERR_WRONGPARAMS;
 
-      /* Convert the filtered ADC value to voltage in millivolts (applying step size and offset correction) */
-	  adcVoltagemV = (float) ((MovingAvg * ADC_STEP_MV) - (CURRENT_SENSE_OFFSET));
+	/* Start ADC calibration and conversion */
+	HAL_ADCEx_Calibration_Start(&hadc1);
+	HAL_ADC_Start_IT(&hadc1);
 
-	  /* Calculate the load current using the current sensing gain factor */
-	  Current = (adcVoltagemV /CURRENT_SENSE_GAIN);
+	/* Convert the filtered ADC value to voltage in millivolts (applying step size and offset correction) */
+	adcVoltagemV = (float) ((MovingAvg * ADC_STEP_MV) - (CURRENT_SENSE_OFFSET));
 
-	  /* Stop ADC */
-	  HAL_ADC_Stop_IT(&hadc1);
+	/* Calculate the load current using the current sensing gain factor */
+	*Current = (adcVoltagemV / CURRENT_SENSE_GAIN);
 
-	  return Current;
+	/* Stop ADC */
+	HAL_ADC_Stop_IT(&hadc1);
+
+	return status;
 }
 
 /***************************************************************************/
@@ -713,61 +689,33 @@ static float CalculateLoadCurrent (void) {
 /***************************************************************************/
 /***************************** General Functions ***************************/
 /***************************************************************************/
-/**
- * @brief: Turn on the output by turning the switch fully ON (100% PWM).
- */
-Module_Status OutputTurnOn(void){
-	Module_Status status =H0FR7_OK;
+/* Turn on the output by turning the switch fully ON (100% PWM). */
+Module_Status OutputTurnOn(void) {
+	Module_Status status = H0FR7_OK;
 
-	/* Set PWM 1000 % */
+	/* Set PWM 100 % */
 	SwitchControlPWM(PWM_DUTY_CYCLE_FULL);
+	CalculateLoadCurrent(&LoadCurrent);
+	LoadCurrent = LoadCurrent + I_OFFSET;
 
-	/* Update Switch state */
-		SwitchState = STATE_ON;
 	return status;
 }
 
 /***************************************************************************/
-/**
- * @brief: Turn off the output by turning the switch fully OFF (0% PWM).
- */
-Module_Status OutputTurnOff(void){
-	Module_Status status =H0FR7_OK;
+/* Turn off the output by turning the switch fully OFF (0% PWM).*/
+Module_Status OutputTurnOff(void) {
+	Module_Status status = H0FR7_OK;
 
 	/* Set PWM 0 % */
 	SwitchControlPWM(PWM_DUTY_CYCLE_OFF);
-	/* Update Switch state */
-	SwitchState = STATE_OFF;
+	LoadCurrent = 0;
 
 	return status;
 }
 
 /***************************************************************************/
-/**
- * @brief: Toggles the output state between ON and OFF.
- */
-Module_Status OutputToggle(void) {
-	Module_Status status = H0FR7_OK;
-
-	if (SwitchState){
-
-		OutputTurnOff();
-		SwitchState = STATE_OFF;
-	}
-	else{
-
-		OutputTurnOn();
-		SwitchState = STATE_ON;
-	}
-
-	return status;
-}
-
-/***************************************************************************/
-/**
- * @brief Sets the output to a specific PWM duty cycle (0–100%).
- * @param dutyCycle Desired PWM dutycycle percentage (0–100).
-
+/* Sets the output to a specific PWM duty cycle (0–100%).
+ * dutyCycle: Desired PWM dutycycle percentage (0–100).
  */
 Module_Status OutputPWM(uint8_t DutyCycle) {
 	Module_Status status = H0FR7_OK;
@@ -778,27 +726,26 @@ Module_Status OutputPWM(uint8_t DutyCycle) {
 	/* Start the PWM */
 	SwitchControlPWM(DutyCycle);
 
-	/* Update Switch state */
-	SwitchState =STATE_PWM;
+	if (DutyCycle >= 25) {
+		CalculateLoadCurrent(&LoadCurrent);
+		LoadCurrent = LoadCurrent + I_OFFSET;
+	}
 
 	return status;
 }
 
 /***************************************************************************/
-Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
-
+/* Retrieves the current value from the global LoadCurrent variable.
+ * CurrentOut: Pointer to store the calculated current in mA.
+ */
+Module_Status GetLoadCurrent(float *CurrentOut) {
 	Module_Status status = H0FR7_OK;
 
-	if (DutyCycle < 0 || DutyCycle > 100)
+	if (CurrentOut == NULL)
 		return H0FR7_ERR_WRONGPARAMS;
 
-	OutputPWM(DutyCycle);
-
-
-	if (DutyCycle == 0)
-		*LoadCurrent = 0;
-	if (DutyCycle >= 25)
-		*LoadCurrent = CalculateLoadCurrent() + 20.0f;
+	/* Return the global LoadCurrent value */
+	*CurrentOut = LoadCurrent;
 
 	return status;
 }
@@ -806,7 +753,7 @@ Module_Status GetLoadCurrent (uint8_t DutyCycle , float* LoadCurrent){
 /***************************************************************************/
 /********************************* Commands ********************************/
 /***************************************************************************/
-portBASE_TYPE CLI_Output_Turn_ONCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+portBASE_TYPE CLI_Output_Turn_ONCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString) {
 	Module_Status status = H0FR7_OK;
 
 	static const int8_t *pcOKMessage = (int8_t*) "The output has been successfully turned on\r\n";
@@ -827,7 +774,7 @@ portBASE_TYPE CLI_Output_Turn_ONCommand(int8_t *pcWriteBuffer, size_t xWriteBuff
 }
 
 /***************************************************************************/
-portBASE_TYPE CLI_Output_Turn_OFFCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+portBASE_TYPE CLI_Output_Turn_OFFCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString) {
 	Module_Status status = H0FR7_OK;
 
 	static const int8_t *pcOKMessage = (int8_t*) "The output has been successfully turned off\r\n";
@@ -848,53 +795,31 @@ portBASE_TYPE CLI_Output_Turn_OFFCommand(int8_t *pcWriteBuffer, size_t xWriteBuf
 }
 
 /***************************************************************************/
-portBASE_TYPE CLI_Output_ToggleCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
-	Module_Status status = H0FR7_OK;
-
-	static const int8_t *pcOKMessage = (int8_t*) "The output has been successfully toggle\r\n";
-
-	(void) xWriteBufferLen;
-	configASSERT(pcWriteBuffer);
-
-	status = OutputToggle();
-
-	/* Respond to the command */
-	if (status == H0FR7_OK) {
-		strcpy((char*) pcWriteBuffer, (char*) pcOKMessage);
-	}
-
-	/* There is no more data to return after this single string, so return
-	 pdFALSE. */
-	return pdFALSE;
-}
-
-/***************************************************************************/
-portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString) {
 	Module_Status status = H0FR7_OK;
 
 	uint8_t DutyCycle;
 
-	portBASE_TYPE xParameterStringLength1 =0;
+	portBASE_TYPE xParameterStringLength1 = 0;
 
 	static int8_t *pcParameterString1;
 
 	static const int8_t *pcOKMessage = (int8_t*) "The output is running PWM in duty cycle %d%% percent\r\n";
-	static const int8_t *pcWrongDutyCycleMessage =(int8_t* )"WrongDutyCycle!\n\r";
+	static const int8_t *pcWrongDutyCycleMessage = (int8_t*) "WrongDutyCycle!\n\r";
 
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
 
-	pcParameterString1 =(int8_t* )FreeRTOS_CLIGetParameter(pcCommandString,1,&xParameterStringLength1);
-	DutyCycle =(uint8_t )atol((char* )pcParameterString1);
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
+	DutyCycle = (uint8_t) atol((char*) pcParameterString1);
 
 	status = OutputPWM(DutyCycle);
 
 	/* Respond to the command */
 	if (status == H0FR7_OK) {
-		sprintf((char* )pcWriteBuffer,(char* )pcOKMessage,DutyCycle);
-	}
-	else if(status == H0FR7_ERR_WRONGDUTYCYCLE) {
-		strcpy((char* )pcWriteBuffer,(char* )pcWrongDutyCycleMessage);
+		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, DutyCycle);
+	} else if (status == H0FR7_ERR_WRONGDUTYCYCLE) {
+		strcpy((char*) pcWriteBuffer, (char*) pcWrongDutyCycleMessage);
 	}
 	/* There is no more data to return after this single string, so return
 	 pdFALSE. */
@@ -902,44 +827,40 @@ portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLe
 }
 
 /***************************************************************************/
-portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen,const int8_t *pcCommandString) {
+portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString) {
 	Module_Status status = H0FR7_OK;
 	uint8_t Count;
 	uint8_t DutyCycle;
 	float LoadCurrent;
 
-	portBASE_TYPE xParameterStringLength1 =0;
+	portBASE_TYPE xParameterStringLength1 = 0;
 
 	static int8_t *pcParameterString1;
 
 	static const int8_t *pcOKMessage = (int8_t*) "Load current: %.2f mA for duty cycle %d%%\r\n";
-	static const int8_t *pcWrongDutyCycleMessage =(int8_t* )"WrongDutyCycle!\n\r";
+	static const int8_t *pcWrongDutyCycleMessage = (int8_t*) "WrongDutyCycle!\n\r";
 
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
 
-	pcParameterString1 =(int8_t* )FreeRTOS_CLIGetParameter(pcCommandString,1,&xParameterStringLength1);
-	DutyCycle =(uint8_t )atol((char* )pcParameterString1);
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
+	DutyCycle = (uint8_t) atol((char*) pcParameterString1);
 
-
-	status = GetLoadCurrent(DutyCycle, &LoadCurrent);
+//	status = GetLoadCurrent(DutyCycle, &LoadCurrent);
 	/* Respond to the command */
-	if (status == H0FR7_OK)
-	{
-		 for ( ;Count <=255 ;Count++){
-		    	LoadCurrent = CalculateLoadCurrent();
+	if (status == H0FR7_OK) {
+		for (; Count <= 255; Count++) {
+//		    	LoadCurrent = CalculateLoadCurrent();
 
-		 if (Count == 255){
+			if (Count == 255) {
 
-			 sprintf((char*)pcWriteBuffer, (char*)pcOKMessage, LoadCurrent, DutyCycle);
-		break;
+				sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, LoadCurrent, DutyCycle);
+				break;
+			}
 		}
-	}
 
-	}
-	else if (status == H0FR7_ERR_WRONGDUTYCYCLE)
-	{
-		strcpy((char*)pcWriteBuffer, (char*)pcWrongDutyCycleMessage);
+	} else if (status == H0FR7_ERR_WRONGDUTYCYCLE) {
+		strcpy((char*) pcWriteBuffer, (char*) pcWrongDutyCycleMessage);
 	}
 	/* There is no more data to return after this single string, so return
 	 pdFALSE. */

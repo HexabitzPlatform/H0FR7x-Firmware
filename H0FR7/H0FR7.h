@@ -40,13 +40,11 @@
 #define _P3
 #define _P4
 #define _P5
-//#define _P6
 
 /* Define Available USARTs */
 #define _USART1
 #define _USART2
 #define _USART3
-//#define _USART4
 #define _USART5
 #define _USART6
 
@@ -56,7 +54,6 @@
 #define UART_P3 &huart3
 #define UART_P4 &huart1
 #define UART_P5 &huart5
-//#define UART_P6 &huart4
 
 /* Module-specific Hardware Definitions ************************************/
 /* Port Definitions */
@@ -120,36 +117,25 @@
 #define PWM_DUTY_CYCLE_FULL    100   /*Duty cycle value for fully ON PWM signal (100%)*/
 #define PWM_DUTY_CYCLE_OFF     0     /*Duty cycle value for fully OFF PWM signal (0%)*/
 
-// ADC to millivolt conversion factor (based on ADC resolution and Vref)
-#define ADC_STEP_MV            0.6103515f  // For 12-bit ADC and Vref = 2.5V   (2500/4096)
+/* ADC to millivolt conversion factor (based on ADC resolution and Vref)*/
+#define ADC_STEP_MV            0.6103515f  /* For 12-bit ADC and Vref = 2.5V   (2500/4096)*/
 
-// Offset voltage in millivolts (from calibration equation)
-#define CURRENT_SENSE_OFFSET   4.1943f     // Voltage offset in mV
+/* Offset voltage in millivolts (from calibration equation) */
+#define CURRENT_SENSE_OFFSET   4.1943f     /* Voltage offset in mV */
 
-// Current sensor gain in mV per Amp (from calibration equation)
-#define CURRENT_SENSE_GAIN     0.1288f     // mV per Amp
+/* Current sensor gain in mV per Amp (from calibration equation) */
+#define CURRENT_SENSE_GAIN     0.1288f     /* mV per Amp */
 
+#define I_OFFSET               20.0f  /* Offset added to align current reading with multimeter */
 
+/* Number of samples used for moving average to calculate current */
 #define MOVING_AVG_SIZE        1500
-/* Module-specific Enumeration Definitions *********************************/
-
 
 /* Module-specific Type Definition *****************************************/
 /* Module-status Type Definition */
 typedef enum {
-	H0FR7_OK = 0,
-	H0FR7_ERR_UNKNOWNMESSAGE,
-	H0FR7_ERR_WRONGPARAMS,
-	H0FR7_ERR_WRONGDUTYCYCLE,
-	H0FR7_ERROR = 255
+	H0FR7_OK = 0, H0FR7_ERR_UNKNOWNMESSAGE, H0FR7_ERR_WRONGPARAMS, H0FR7_ERR_WRONGDUTYCYCLE, H0FR7_ERROR = 255
 } Module_Status;
-
-/* Switch_state_t Type Definition */
-typedef enum  {
-	STATE_OFF =0,
-	STATE_ON,
-	STATE_PWM
-} Switch_State_t;
 
 /* Export UART variables */
 extern UART_HandleTypeDef huart1;
@@ -173,9 +159,8 @@ extern void SystemClock_Config(void);
 /***************************************************************************/
 Module_Status OutputTurnOn(void);
 Module_Status OutputTurnOff(void);
-Module_Status OutputToggle(void);
 Module_Status OutputPWM(uint8_t dutyCycle);
-Module_Status GetLoadCurrent(uint8_t DutyCycle , float* LoadCurrent);
+Module_Status GetLoadCurrent(float *LoadCurrent);
 
 #endif /* H0FR7_H */
 
