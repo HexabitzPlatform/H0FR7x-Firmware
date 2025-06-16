@@ -59,27 +59,27 @@ uint32_t GetChannel(UART_HandleTypeDef *huart,char *side);
  * Data Alignment and number of conversion) to read multiple ADC
  * channel in Port 2 and port 3 and for calculate internal temperature and internal voltage
  */
-void MX_ADC_Init(void){
-	hadc.Instance = ADC1;
-	hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-	hadc.Init.Resolution = ADC_RESOLUTION_12B;
-	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
-	hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-	hadc.Init.LowPowerAutoWait =DISABLE;
-	hadc.Init.LowPowerAutoPowerOff =DISABLE;
-	hadc.Init.ContinuousConvMode =ENABLE;
-	hadc.Init.DiscontinuousConvMode =DISABLE;
-	hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-	hadc.Init.DMAContinuousRequests =DISABLE;
-	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
-
-	if(HAL_ADC_Init(&hadc) != HAL_OK){
-		Error_Handler();
-	}
-	adcEnableFlag =1;
-}
+//void MX_ADC_Init(void){
+//	hadc.Instance = ADC1;
+//	hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+//	hadc.Init.Resolution = ADC_RESOLUTION_12B;
+//	hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+//	hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
+//	hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+//	hadc.Init.LowPowerAutoWait =DISABLE;
+//	hadc.Init.LowPowerAutoPowerOff =DISABLE;
+//	hadc.Init.ContinuousConvMode =ENABLE;
+//	hadc.Init.DiscontinuousConvMode =DISABLE;
+//	hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+//	hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+//	hadc.Init.DMAContinuousRequests =DISABLE;
+//	hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+//
+//	if(HAL_ADC_Init(&hadc) != HAL_OK){
+//		Error_Handler();
+//	}
+//	adcEnableFlag =1;
+//}
 
 /***************************************************************************/
 //void HAL_ADC_MspInit(ADC_HandleTypeDef *adcHandle){

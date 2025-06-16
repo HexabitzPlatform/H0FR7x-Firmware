@@ -23,7 +23,7 @@
 extern ADC_HandleTypeDef hadc1;
 
 /* External function *******************************************************/
-void MX_ADC1_Init(void);
+void MX_ADC_Init(void);
 
 
 #ifdef __cplusplus
