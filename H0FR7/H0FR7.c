@@ -36,10 +36,17 @@ uint16_t sampleCount = 0u;                    // Number of samples collected so 
 uint16_t bufferIndex = 0u;                    // Current index in the circular buffer
 uint32_t sum = 0u;
 uint32_t MovingAvg = 0u;
+uint16_t ActualPWM_Frequency = 0;
 float adcVoltagemV = 0.0f;
 float LoadCurrent = 0.0f;
+
+/* Global variables for sensor data used in ModuleParam */
+float H0FR7_LoadCurrent = 0.0f;
+
 /* Module Parameters */
-ModuleParam_t ModuleParam[NUM_MODULE_PARAMS] = { 0 };
+ModuleParam_t ModuleParam[NUM_MODULE_PARAMS] = {
+	{ .ParamPtr = &H0FR7_LoadCurrent,     .ParamFormat = FMT_FLOAT,   .ParamName = "current" },
+};
 
 /* Private Function Prototypes *********************************************/
 void MX_TIM3_Init(void);
@@ -52,7 +59,7 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 /* Local Function Prototypes ***********************************************/
 uint16_t MovingAverage(uint16_t adcNewValue);
 Module_Status CalculateLoadCurrent(float *Current);
-Module_Status SwitchControlPWM(uint8_t dutycycle);
+Module_Status SwitchControlPWM(uint8_t dutycycle,uint32_t freq);
 
 /* Create CLI commands *****************************************************/
 portBASE_TYPE CLI_Output_Turn_ONCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString);
@@ -504,7 +511,7 @@ void Module_Peripheral_Init(void) {
 	/* MOSFET Timer Init */
 	MX_TIM3_Init();
 	/* ADC Init */
-	MX_ADC1_Init();
+	MX_ADC_Init();
 	/* Start ADC1 in DMA mode to continuously read one value into adcResult */
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*) &adcResult, 1);
 
@@ -532,7 +539,7 @@ void Module_Peripheral_Init(void) {
 Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uint8_t dst, uint8_t shift) {
 	Module_Status result = H0FR7_OK;
 	uint8_t DutyCycle = 0;
-
+    uint16_t Freq = 0;
 	switch (code) {
 
 	case CODE_H0FR7_ON:
@@ -545,7 +552,8 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 
 	case CODE_H0FR7_PWM:
 		DutyCycle = (uint8_t) cMessage[port - 1][shift];
-		OutputPWM(DutyCycle);
+		Freq = (uint8_t) cMessage[port - 1][1 + shift];
+		OutputPWM(DutyCycle,Freq);
 		break;
 
 	default:
@@ -591,9 +599,18 @@ void RegisterModuleCLICommands(void) {
  * value: Pointer to store the sampled float value.
  */
 Module_Status GetModuleParameter(uint8_t paramIndex, float *value) {
-	Module_Status status = BOS_OK;
+	Module_Status status = H0FR7_OK;
 
 	switch (paramIndex) {
+
+	case 1: {
+
+		float temp = 0.0f;
+		status =  GetLoadCurrent(&temp);
+		if (status == H0FR7_OK)
+			*value = (float) temp;
+		break;
+	}
 
 	/* Invalid parameter index */
 	default:
@@ -641,23 +658,45 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 /* Sets PWM duty cycle to control the switch (MOSFET).
  * dutycycle: The desired PWM duty cycle (0 to 100).
  */
-
-Module_Status SwitchControlPWM(uint8_t dutycycle) {
-
+Module_Status SwitchControlPWM(uint8_t dutycycle, uint32_t freq) {
 	Module_Status status = H0FR7_OK;
 
-	if (dutycycle >= 0 && dutycycle <= 100) {
+	/* Get the timer base clock frequency (use appropriate function based on timer used) */
+	uint32_t timerClock = HAL_RCC_GetPCLK1Freq();
 
+	if ((freq < 0 || freq >= 30000))
+		return H0FR7_ERR_WRONGPARAMS;
+
+	/* Validate input parameters */
+	if (dutycycle >= 0 && dutycycle <= 100) {
+		uint32_t prescaler = 1;
+		uint32_t arr = timerClock / freq;
+
+		/* Check if ARR exceeds 16-bit limit */
+		if (arr > 0xFFFF) {
+			prescaler = (arr / 0xFFFF) + 1;
+			arr = timerClock / (freq * prescaler);
+		}
+
+		/* Apply calculated prescaler and ARR values to timer registers */
+		SWITCH_CONTROL_PSC = prescaler - 1;
+		SWITCH_CONTROL_ARR = arr - 1;
+
+		/* Calculate the CCR value based on desired duty cycle (0–100%) */
+		SWITCH_CONTROL_CCR = ((float) dutycycle / 100.0f) * arr;
+
+		/* Calculate and store actual PWM frequency */
+		ActualPWM_Frequency = (float) timerClock / ((SWITCH_CONTROL_PSC + 1) * (SWITCH_CONTROL_ARR + 1));
+
+		/* Start PWM signal generation */
 		HAL_TIM_PWM_Start(SWITCH_CONTROL_TIM_HANDLE, SWITCH_CONTROL_TIM_CH);
-		SWITCH_CONTROL_ARR = PWM_MAX_ARR - 1;
-		SWITCH_CONTROL_CCR = ((float) dutycycle / 100.0f) * SWITCH_CONTROL_ARR;
 	} else {
 
 		status = H0FR7_ERR_WRONGPARAMS;
 	}
+
 	return status;
 }
-
 /***************************************************************************/
 /* Calculates the load current using filtered ADC readings.
  * Current: Pointer to store the calculated current in mA. */
@@ -694,7 +733,7 @@ Module_Status OutputTurnOn(void) {
 	Module_Status status = H0FR7_OK;
 
 	/* Set PWM 100 % */
-	SwitchControlPWM(PWM_DUTY_CYCLE_FULL);
+	SwitchControlPWM(PWM_DUTY_CYCLE_FULL,1);
 	CalculateLoadCurrent(&LoadCurrent);
 	LoadCurrent = LoadCurrent + I_OFFSET;
 
@@ -707,7 +746,7 @@ Module_Status OutputTurnOff(void) {
 	Module_Status status = H0FR7_OK;
 
 	/* Set PWM 0 % */
-	SwitchControlPWM(PWM_DUTY_CYCLE_OFF);
+	SwitchControlPWM(PWM_DUTY_CYCLE_OFF,1);
 	LoadCurrent = 0;
 
 	return status;
@@ -716,15 +755,16 @@ Module_Status OutputTurnOff(void) {
 /***************************************************************************/
 /* Sets the output to a specific PWM duty cycle (0–100%).
  * dutyCycle: Desired PWM dutycycle percentage (0–100).
+ * Freq:Desired PWM signal frequency in Hz. Must be > 0 and < 30000.
  */
-Module_Status OutputPWM(uint8_t DutyCycle) {
+Module_Status OutputPWM(uint8_t DutyCycle, uint16_t Freq) {
 	Module_Status status = H0FR7_OK;
 
 	if (DutyCycle < 0 || DutyCycle > 100)
 		return H0FR7_ERR_WRONGPARAMS;
 
 	/* Start the PWM */
-	SwitchControlPWM(DutyCycle);
+	SwitchControlPWM(DutyCycle,Freq);
 
 	if (DutyCycle >= 25) {
 		CalculateLoadCurrent(&LoadCurrent);
@@ -799,12 +839,13 @@ portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLe
 	Module_Status status = H0FR7_OK;
 
 	uint8_t DutyCycle;
-
+    uint16_t Freq;
 	portBASE_TYPE xParameterStringLength1 = 0;
 
 	static int8_t *pcParameterString1;
+	static int8_t *pcParameterString2;
 
-	static const int8_t *pcOKMessage = (int8_t*) "The output is running PWM in duty cycle %d%% percent\r\n";
+	static const int8_t *pcOKMessage = (int8_t*) "The output is running PWM in duty cycle %d%% percent and a signal frequency of %d Hz\r\n";
 	static const int8_t *pcWrongDutyCycleMessage = (int8_t*) "WrongDutyCycle!\n\r";
 
 	(void) xWriteBufferLen;
@@ -813,11 +854,13 @@ portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLe
 	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
 	DutyCycle = (uint8_t) atol((char*) pcParameterString1);
 
-	status = OutputPWM(DutyCycle);
+	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
+	Freq = (uint8_t) atol((char*) pcParameterString1);
+	status = OutputPWM(DutyCycle,Freq);
 
 	/* Respond to the command */
 	if (status == H0FR7_OK) {
-		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, DutyCycle);
+		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, DutyCycle ,Freq);
 	} else if (status == H0FR7_ERR_WRONGDUTYCYCLE) {
 		strcpy((char*) pcWriteBuffer, (char*) pcWrongDutyCycleMessage);
 	}

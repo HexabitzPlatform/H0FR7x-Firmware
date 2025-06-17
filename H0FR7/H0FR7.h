@@ -100,6 +100,7 @@
 #define SWITCH_CONTROL_TIM_CH         TIM_CHANNEL_4
 #define SWITCH_CONTROL_ARR            htim3.Instance->ARR
 #define SWITCH_CONTROL_CCR            htim3.Instance->CCR4
+#define SWITCH_CONTROL_PSC            htim3.Instance->PSC
 
 /* CURRENT_SENSE Port-ADC Definitions */
 #define CURRENT_SENSE_GPIO_PIN   	  GPIO_PIN_4
@@ -159,7 +160,7 @@ extern void SystemClock_Config(void);
 /***************************************************************************/
 Module_Status OutputTurnOn(void);
 Module_Status OutputTurnOff(void);
-Module_Status OutputPWM(uint8_t dutyCycle);
+Module_Status OutputPWM(uint8_t DutyCycle, uint16_t Freq);
 Module_Status GetLoadCurrent(float *LoadCurrent);
 
 #endif /* H0FR7_H */

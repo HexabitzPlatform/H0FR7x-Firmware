@@ -17,7 +17,7 @@
 
 
 uint16_t dutyCycle = 0u;
-
+uint32_t timerClock;
 float LLoadCurrent;
 
 
@@ -78,8 +78,8 @@ void UserTask(void *argument){
 //		 TIM3->CCR4 = DutyCycle;
 //		 myLoadCurrent = Current();
 
-		OutputPWM(50);
-		GetLoadCurrent(&LLoadCurrent);
+//		OutputPWM(50,20000);
+//		GetLoadCurrent(&LLoadCurrent);
 //		HAL_Delay(6000);
 //		OutputTurnOff();
 //		HAL_Delay(6000);
