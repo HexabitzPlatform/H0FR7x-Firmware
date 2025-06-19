@@ -2,10 +2,12 @@
  BitzOS (BOS) V0.4.0 - Copyright (C) 2017-2025 Hexabitz
  All rights reserved
 
- File Name     : H0FR7_it.c
- Description   :Interrupt Service Routines.
-
- */
+ File Name  : H0FR7_it.c
+ Description: Interrupt handlers for H0FR7 module.
+ System: HardFault, Stack/Heap overflow handlers.
+ UART: DMA and error callbacks for all ports (USART1-6).
+ RTOS: FreeRTOS hook functions.
+*/
 
 /* Includes ****************************************************************/
 #include "BOS.h"

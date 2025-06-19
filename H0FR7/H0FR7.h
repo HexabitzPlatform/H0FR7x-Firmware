@@ -2,14 +2,12 @@
  BitzOS (BOS) V0.4.0 - Copyright (C) 2017-2025 Hexabitz
  All rights reserved
  
- File Name     : H0FR7.h
- Description   : Header file for module H0FR7.
- (Description_of_module)
-
- (Description of Special module peripheral configuration):
- >>
- >>
- >>
+ File Name  : H0FR7.h
+ Description: Description: Description: Main header for module hardware configuration and switch control.
+ UART:  Five ports (P1-P5) mapped to USART1-6 with GPIO pin assignments.
+ GPIO:  Indicator LED on PB7, port pin configurations.
+ ADC:   reads voltage from current sensing circuit to monitor load current
+ TIMER: PWM timer controls the switching signal to the MOSFET driver
 
  */
 

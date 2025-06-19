@@ -2,10 +2,12 @@
  BitzOS (BOS) V0.4.0 - Copyright (C) 2017-2025 Hexabitz
  All rights reserved
 
- File Name     : H0FR7_uart.c
- Description   : Source Code provides configuration for USART instances.
-
+ File Name  : H0FR7_uart.c
+ Description: UART configurations for H0FR7 module.
+ UART: USART1-6 initialization with DMA RX (Channels 1-6).
+ Communication: Baudrate adjustment, pin swapping, mutex-protected read/write.
  */
+
 
 /* Includes ****************************************************************/
 #include "BOS.h"

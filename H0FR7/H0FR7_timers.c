@@ -2,15 +2,12 @@
  BitzOS (BOS) V0.4.0 - Copyright (C) 2017-2025 Hexabitz
  All rights reserved
 
- File Name     : H0FR7_timers.c
- Description   : Peripheral timers setup source file.
+ File Name  : H0FR7_timers.c
+ Description: Timer configurations for H0FR7 module.
+ Timers: TIM16 (µs delays), TIM17 (ms delays), IWDG (500ms watchdog).
+ PWM: TIM3 for switch control (CH4).
+*/
 
- Required MCU resources :
-
- >> Timer 14 for micro-sec delay.
- >> Timer 15 for milli-sec delay.
-
- */
 
 /* Includes ****************************************************************/
 #include "BOS.h"

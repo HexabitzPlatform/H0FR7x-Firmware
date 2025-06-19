@@ -2,15 +2,10 @@
  BitzOS (BOS) V0.4.0 - Copyright (C) 2017-2025 Hexabitz
  All rights reserved
 
- File Name     : H0FR7.c
- Description   : Source code for module H0FR7.
- (Description_of_module)
-
- (Description of Special module peripheral configuration):
- >>
- >>
- >>
-
+ File Name  : H0FR7.c
+ Description: H0FR7 power switch control main implementation.
+ Components: UART ports, PWM timers, ADC input for current sensing.
+ Functions: Output switching, PWM control, load current monitoring.
  */
 
 /* Includes ****************************************************************/
@@ -552,7 +547,7 @@ Module_Status Module_MessagingTask(uint16_t code, uint8_t port, uint8_t src, uin
 
 	case CODE_H0FR7_PWM:
 		DutyCycle = (uint8_t) cMessage[port - 1][shift];
-		Freq = (uint8_t) cMessage[port - 1][1 + shift];
+		Freq = (uint16_t) cMessage[port - 1][1 + shift] + ((uint16_t) cMessage[port - 1][2 + shift] << 8);
 		OutputPWM(DutyCycle,Freq);
 		break;
 
@@ -728,32 +723,35 @@ Module_Status CalculateLoadCurrent(float *Current) {
 /***************************************************************************/
 /***************************** General Functions ***************************/
 /***************************************************************************/
-/* Turn on the output by turning the switch fully ON (100% PWM). */
+/* Turn on the output by setting the switch fully ON using 100% PWM duty cycle. */
 Module_Status OutputTurnOn(void) {
 	Module_Status status = H0FR7_OK;
 
-	/* Set PWM 100 % */
+	/* Set PWM to 100%. Since the output remains constantly HIGH at 100% duty cycle, the frequency parameter (second argument) has no practical effect. */
 	SwitchControlPWM(PWM_DUTY_CYCLE_FULL,1);
+	/* Measured the current flowing through the load and store it in Load Current. */
 	CalculateLoadCurrent(&LoadCurrent);
+	/* Apply a fixed offset to the measured current to improve accuracy */
 	LoadCurrent = LoadCurrent + I_OFFSET;
 
 	return status;
 }
 
 /***************************************************************************/
-/* Turn off the output by turning the switch fully OFF (0% PWM).*/
+/* Turn off the output by setting the switch fully OFF using 0% PWM duty cycle. */
 Module_Status OutputTurnOff(void) {
 	Module_Status status = H0FR7_OK;
 
-	/* Set PWM 0 % */
+	/* Set PWM 0 % Since the output remains constantly LOW at 0% duty cycle, the frequency parameter (second argument) has no practical effect. */
 	SwitchControlPWM(PWM_DUTY_CYCLE_OFF,1);
+	/* Manually set the load current to zero, since the output is turned off and no current is expected. */
 	LoadCurrent = 0;
 
 	return status;
 }
 
 /***************************************************************************/
-/* Sets the output to a specific PWM duty cycle (0–100%).
+/* /* Set the PWM output to a specific duty cycle and frequency.
  * dutyCycle: Desired PWM dutycycle percentage (0–100).
  * Freq:Desired PWM signal frequency in Hz. Must be > 0 and < 30000.
  */
@@ -763,11 +761,13 @@ Module_Status OutputPWM(uint8_t DutyCycle, uint16_t Freq) {
 	if (DutyCycle < 0 || DutyCycle > 100)
 		return H0FR7_ERR_WRONGPARAMS;
 
-	/* Start the PWM */
+	/* update the PWM output with the given duty cycle and frequency. */
 	SwitchControlPWM(DutyCycle,Freq);
+	/* Measure current through the load. */
+	CalculateLoadCurrent(&LoadCurrent);
 
 	if (DutyCycle >= 25) {
-		CalculateLoadCurrent(&LoadCurrent);
+	/* If duty cycle is sufficiently high, apply an offset for better accuracy. */
 		LoadCurrent = LoadCurrent + I_OFFSET;
 	}
 
@@ -872,35 +872,19 @@ portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLe
 /***************************************************************************/
 portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLen, const int8_t *pcCommandString) {
 	Module_Status status = H0FR7_OK;
-	uint8_t Count;
-	uint8_t DutyCycle;
+
 	float LoadCurrent;
 
-	portBASE_TYPE xParameterStringLength1 = 0;
-
-	static int8_t *pcParameterString1;
-
-	static const int8_t *pcOKMessage = (int8_t*) "Load current: %.2f mA for duty cycle %d%%\r\n";
+	static const int8_t *pcOKMessage = (int8_t*) "Load current: %.2f mA \r\n";
 	static const int8_t *pcWrongDutyCycleMessage = (int8_t*) "WrongDutyCycle!\n\r";
 
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
 
-	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
-	DutyCycle = (uint8_t) atol((char*) pcParameterString1);
-
-//	status = GetLoadCurrent(DutyCycle, &LoadCurrent);
+	status = CalculateLoadCurrent(&LoadCurrent);
 	/* Respond to the command */
 	if (status == H0FR7_OK) {
-		for (; Count <= 255; Count++) {
-//		    	LoadCurrent = CalculateLoadCurrent();
-
-			if (Count == 255) {
-
-				sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, LoadCurrent, DutyCycle);
-				break;
-			}
-		}
+		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, LoadCurrent);
 
 	} else if (status == H0FR7_ERR_WRONGDUTYCYCLE) {
 		strcpy((char*) pcWriteBuffer, (char*) pcWrongDutyCycleMessage);

@@ -3,8 +3,8 @@
  All rights reserved
 
  File Name     : H0FR7_dma.c
- Description   : source file Contains Peripheral adc setup .
-
+ Description   : Configures ADC1  with DMA suppor for current Sensing.
+ Peripherals: ADC1 (DMA2 channel_1).
  */
 
 /* Includes ****************************************************************/

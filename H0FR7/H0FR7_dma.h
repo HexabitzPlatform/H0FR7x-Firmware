@@ -3,9 +3,10 @@
  All rights reserved
  
  File Name     : H0FR7_dma.h
- Description   : Header file contains Peripheral DMA setup.
-
- */
+ Description: DMA peripheral configuration header.
+ Functions: DMA initialization, mode switching, CRC calculation.
+ Macros: DMA interrupt source checking.
+*/
 
 /* Define to prevent recursive inclusion ***********************************/
 #ifndef H0BR4_dma_H
