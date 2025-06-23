@@ -81,9 +81,9 @@ CLI_Output_Turn_OFFCommand, /* The function to run. */
 /* CLI command structure : OutputPWM */
 const CLI_Command_Definition_t CLI_Output_PWMCommandDefinition =
 { (const int8_t*) "turn_pwm", /* The command string to type. */
-(const int8_t*) "turn_pwm:\r\nParameters required to execute a OutputPWM:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
+(const int8_t*) "turn_pwm:\r\nParameters required to execute a OutputPWM:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r 2)Freq:Desired PWM signal frequency in Hz. Must be > 0 and < 30000.\n\r",
 CLI_Output_PWMCommand, /* The function to run. */
-1 /* one parameters are expected. */
+2 /* tow parameters are expected. */
 };
 
 /***************************************************************************/
@@ -92,7 +92,7 @@ const CLI_Command_Definition_t CLI_Get_CurrentCommandDefinition =
 { (const int8_t*) "get_current", /* The command string to type. */
 (const int8_t*) "get_current:\r\nParameters required to execute a GetLoadCurrent:\n\r 1)dutyCycle: PWM duty cycle in precentage (0 to 100)% \n\r",
 CLI_Get_CurrentCommand, /* The function to run. */
-1 /* one parameters are expected. */
+0 /* zero parameters are expected. */
 };
 
 /***************************************************************************/
@@ -751,7 +751,7 @@ Module_Status OutputTurnOff(void) {
 }
 
 /***************************************************************************/
-/* /* Set the PWM output to a specific duty cycle and frequency.
+/* Set the PWM output to a specific duty cycle and frequency.
  * dutyCycle: Desired PWM dutycycle percentage (0–100).
  * Freq:Desired PWM signal frequency in Hz. Must be > 0 and < 30000.
  */
@@ -841,7 +841,7 @@ portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLe
 	uint8_t DutyCycle;
     uint16_t Freq;
 	portBASE_TYPE xParameterStringLength1 = 0;
-
+	portBASE_TYPE xParameterStringLength2 = 0;
 	static int8_t *pcParameterString1;
 	static int8_t *pcParameterString2;
 
@@ -854,8 +854,8 @@ portBASE_TYPE CLI_Output_PWMCommand(int8_t *pcWriteBuffer, size_t xWriteBufferLe
 	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
 	DutyCycle = (uint8_t) atol((char*) pcParameterString1);
 
-	pcParameterString1 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength1);
-	Freq = (uint8_t) atol((char*) pcParameterString1);
+	pcParameterString2 = (int8_t*) FreeRTOS_CLIGetParameter(pcCommandString, 1, &xParameterStringLength2);
+	Freq = (uint8_t) atol((char*) pcParameterString2);
 	status = OutputPWM(DutyCycle,Freq);
 
 	/* Respond to the command */
@@ -880,8 +880,11 @@ portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferL
 
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
-
+	for(uint8_t count = 0 ;count <255 ; count++){
+		CalculateLoadCurrent(&LoadCurrent);
+	}
 	status = CalculateLoadCurrent(&LoadCurrent);
+	LoadCurrent = LoadCurrent + I_OFFSET;
 	/* Respond to the command */
 	if (status == H0FR7_OK) {
 		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, LoadCurrent);
