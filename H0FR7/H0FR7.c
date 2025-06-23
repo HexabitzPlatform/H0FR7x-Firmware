@@ -880,11 +880,11 @@ portBASE_TYPE CLI_Get_CurrentCommand(int8_t *pcWriteBuffer, size_t xWriteBufferL
 
 	(void) xWriteBufferLen;
 	configASSERT(pcWriteBuffer);
-	for(uint8_t count = 0 ;count <255 ; count++){
-		CalculateLoadCurrent(&LoadCurrent);
+	for (uint8_t count = 0; count < 255; count++) {
+		GetLoadCurrent(&LoadCurrent);
 	}
-	status = CalculateLoadCurrent(&LoadCurrent);
-	LoadCurrent = LoadCurrent + I_OFFSET;
+	status = GetLoadCurrent(&LoadCurrent);
+	//  LoadCurrent = LoadCurrent + I_OFFSET;
 	/* Respond to the command */
 	if (status == H0FR7_OK) {
 		sprintf((char*) pcWriteBuffer, (char*) pcOKMessage, LoadCurrent);
